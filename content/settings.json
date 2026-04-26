@@ -1,0 +1,19 @@
+﻿{
+  "language": "zh-CN",
+  "toggleWindowHotkey": "F8",
+  "updateCheckEnabled": true,
+  "updateIndexUrl": "https://raw.githubusercontent.com/hahaha8459812/simpleplanes2-part-editor-plugin/main/index.json",
+  "selectionRefreshIntervalSeconds": 0.25,
+  "maxMembersPerGroup": 120,
+  "fontSize": 18,
+  "windowWidth": 1320,
+  "windowHeight": 860,
+  "backgroundOpacity": 0.96,
+  "floatingButtonX": 28,
+  "floatingButtonY": 140,
+  "floatingButtonSize": 52,
+  "lockFloatingButtonPosition": false,
+  "showTypeColumn": true,
+  "showAccessColumn": true,
+  "showFullTypeName": true
+}

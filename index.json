@@ -1,0 +1,4 @@
+{
+  "version": "0.3.0",
+  "releaseNotes": "Initial public test build. Includes in-game part data editing, custom XML attributes, floating designer button, localization, settings persistence, and lightweight selected-part refresh."
+}

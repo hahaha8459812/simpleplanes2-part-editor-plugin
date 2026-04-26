@@ -1,0 +1,12 @@
+﻿# build outputs
+artifacts/
+release/
+
+# local runtime logs
+*.log
+
+# editor files
+.vs/
+.vscode/
+*.user
+*.suo
