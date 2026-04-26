@@ -1,6 +1,7 @@
 ﻿# build outputs
 artifacts/
 release/
+.ci-deps/
 
 # local runtime logs
 *.log

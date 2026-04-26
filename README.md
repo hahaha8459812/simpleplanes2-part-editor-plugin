@@ -115,6 +115,38 @@ release\SimplePlanes2PartEditor-Release.zip
 E:\Game\steam\steamapps\common\SimplePlanes 2
 ```
 
+## 自动发版
+
+仓库已配置 GitHub Actions 托管编译。推送 `v*` 标签时，云端会自动：
+
+- 下载公开的 BepInEx 和 Unity 引用依赖。
+- 编译 `SimplePlanes2PartEditor.dll`。
+- 打包 `SimplePlanes2PartEditor-Release.zip`。
+- 创建或更新对应 GitHub Release，并上传 Mod 本体。
+
+发新版前请同时更新：
+
+- [src/SimplePlanes2PartEditorPlugin.cs](src/SimplePlanes2PartEditorPlugin.cs) 里的 `PluginVersion`。
+- [index.json](index.json) 里的 `version` 和 `releaseNotes`。
+
+然后提交并打标签：
+
+```powershell
+git add .
+git commit -m "Release v0.3.1"
+git tag -a v0.3.1 -m "Release v0.3.1"
+git push
+git push origin v0.3.1
+```
+
+CI 会校验 tag、`PluginVersion`、`index.json.version` 三者一致。不一致时会停止发版，避免发错包。
+
+CI 专用构建脚本：
+
+```powershell
+.\build-ci.ps1
+```
+
 ## 本地化接口
 
 运行时语言文件位于：

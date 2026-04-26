@@ -107,6 +107,38 @@ Build and install locally:
 .\build.ps1 -InstallToGame
 ```
 
+## Automated Releases
+
+The repository includes a GitHub Actions hosted build. When a `v*` tag is pushed, GitHub Actions will automatically:
+
+- Download public BepInEx and Unity reference dependencies.
+- Compile `SimplePlanes2PartEditor.dll`.
+- Package `SimplePlanes2PartEditor-Release.zip`.
+- Create or update the matching GitHub Release and upload the mod package.
+
+Before publishing a new version, update:
+
+- `PluginVersion` in [src/SimplePlanes2PartEditorPlugin.cs](src/SimplePlanes2PartEditorPlugin.cs).
+- `version` and `releaseNotes` in [index.json](index.json).
+
+Then commit and tag:
+
+```powershell
+git add .
+git commit -m "Release v0.3.1"
+git tag -a v0.3.1 -m "Release v0.3.1"
+git push
+git push origin v0.3.1
+```
+
+CI validates that the Git tag, `PluginVersion`, and `index.json.version` match. If they do not match, publishing stops before a wrong package can be released.
+
+CI build script:
+
+```powershell
+.\build-ci.ps1
+```
+
 ## Localization
 
 Runtime localization files live under:
