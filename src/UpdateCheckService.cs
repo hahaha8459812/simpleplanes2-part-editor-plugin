@@ -56,6 +56,8 @@ namespace SimplePlanes2PartEditor
             using (TimeoutWebClient client = new TimeoutWebClient(DownloadTimeoutMilliseconds))
             {
                 client.Headers[HttpRequestHeader.UserAgent] = SimplePlanes2PartEditorPlugin.PluginName + "/" + SimplePlanes2PartEditorPlugin.PluginVersion;
+                client.Headers[HttpRequestHeader.Accept] = "application/vnd.github.raw";
+                client.Headers["X-GitHub-Api-Version"] = "2022-11-28";
                 return client.DownloadString(url);
             }
         }

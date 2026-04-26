@@ -1,4 +1,4 @@
 {
-  "version": "0.3.1",
-  "releaseNotes": "Added an expanded large text editor for editable member values. The editor supports saved position and size, border-only dragging, bottom-right resizing, and direct Apply/Reset controls."
+  "version": "0.3.2",
+  "releaseNotes": "Added the expanded large text editor and switched update checks to the GitHub Contents API raw response to avoid raw.githubusercontent.com branch cache delays after releases."
 }

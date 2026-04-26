@@ -81,7 +81,7 @@ When publishing a new version, update this file and set its raw URL in the plugi
 ```json
 {
   "updateCheckEnabled": true,
-  "updateIndexUrl": "https://raw.githubusercontent.com/hahaha8459812/simpleplanes2-part-editor-plugin/main/index.json"
+  "updateIndexUrl": "https://api.github.com/repos/hahaha8459812/simpleplanes2-part-editor-plugin/contents/index.json?ref=main"
 }
 ```
 
@@ -160,7 +160,7 @@ Example:
   "language": "zh-CN",
   "toggleWindowHotkey": "F8",
   "updateCheckEnabled": true,
-  "updateIndexUrl": "https://raw.githubusercontent.com/hahaha8459812/simpleplanes2-part-editor-plugin/main/index.json",
+  "updateIndexUrl": "https://api.github.com/repos/hahaha8459812/simpleplanes2-part-editor-plugin/contents/index.json?ref=main",
   "selectionRefreshIntervalSeconds": 0.25,
   "maxMembersPerGroup": 120
 }
