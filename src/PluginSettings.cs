@@ -19,6 +19,10 @@ namespace SimplePlanes2PartEditor
         public float FloatingButtonX { get; private set; }
         public float FloatingButtonY { get; private set; }
         public float FloatingButtonSize { get; private set; }
+        public float ExpandedEditorX { get; private set; }
+        public float ExpandedEditorY { get; private set; }
+        public float ExpandedEditorWidth { get; private set; }
+        public float ExpandedEditorHeight { get; private set; }
         public bool LockFloatingButtonPosition { get; private set; }
         public bool ShowTypeColumn { get; private set; }
         public bool ShowAccessColumn { get; private set; }
@@ -39,6 +43,10 @@ namespace SimplePlanes2PartEditor
             FloatingButtonX = 28f;
             FloatingButtonY = 140f;
             FloatingButtonSize = 52f;
+            ExpandedEditorX = 120f;
+            ExpandedEditorY = 120f;
+            ExpandedEditorWidth = 820f;
+            ExpandedEditorHeight = 420f;
             LockFloatingButtonPosition = false;
             ShowTypeColumn = true;
             ShowAccessColumn = true;
@@ -68,6 +76,10 @@ namespace SimplePlanes2PartEditor
             settings.FloatingButtonX = GetFloat(values, "floatingButtonX", settings.FloatingButtonX);
             settings.FloatingButtonY = GetFloat(values, "floatingButtonY", settings.FloatingButtonY);
             settings.FloatingButtonSize = GetFloat(values, "floatingButtonSize", settings.FloatingButtonSize);
+            settings.ExpandedEditorX = GetFloat(values, "expandedEditorX", settings.ExpandedEditorX);
+            settings.ExpandedEditorY = GetFloat(values, "expandedEditorY", settings.ExpandedEditorY);
+            settings.ExpandedEditorWidth = GetFloat(values, "expandedEditorWidth", settings.ExpandedEditorWidth);
+            settings.ExpandedEditorHeight = GetFloat(values, "expandedEditorHeight", settings.ExpandedEditorHeight);
             settings.LockFloatingButtonPosition = GetBool(values, "lockFloatingButtonPosition", settings.LockFloatingButtonPosition);
             settings.ShowTypeColumn = GetBool(values, "showTypeColumn", settings.ShowTypeColumn);
             settings.ShowAccessColumn = GetBool(values, "showAccessColumn", settings.ShowAccessColumn);
@@ -92,6 +104,10 @@ namespace SimplePlanes2PartEditor
                    "  \"floatingButtonX\": " + FloatingButtonX.ToString(CultureInfo.InvariantCulture) + ",\n" +
                    "  \"floatingButtonY\": " + FloatingButtonY.ToString(CultureInfo.InvariantCulture) + ",\n" +
                    "  \"floatingButtonSize\": " + FloatingButtonSize.ToString(CultureInfo.InvariantCulture) + ",\n" +
+                   "  \"expandedEditorX\": " + ExpandedEditorX.ToString(CultureInfo.InvariantCulture) + ",\n" +
+                   "  \"expandedEditorY\": " + ExpandedEditorY.ToString(CultureInfo.InvariantCulture) + ",\n" +
+                   "  \"expandedEditorWidth\": " + ExpandedEditorWidth.ToString(CultureInfo.InvariantCulture) + ",\n" +
+                   "  \"expandedEditorHeight\": " + ExpandedEditorHeight.ToString(CultureInfo.InvariantCulture) + ",\n" +
                    "  \"lockFloatingButtonPosition\": " + LockFloatingButtonPosition.ToString().ToLowerInvariant() + ",\n" +
                    "  \"showTypeColumn\": " + ShowTypeColumn.ToString().ToLowerInvariant() + ",\n" +
                    "  \"showAccessColumn\": " + ShowAccessColumn.ToString().ToLowerInvariant() + ",\n" +
@@ -146,6 +162,15 @@ namespace SimplePlanes2PartEditor
         public void SetFloatingButtonSize(float size)
         {
             FloatingButtonSize = size;
+            ClampValues();
+        }
+
+        public void SetExpandedEditorLayout(float x, float y, float width, float height)
+        {
+            ExpandedEditorX = x;
+            ExpandedEditorY = y;
+            ExpandedEditorWidth = width;
+            ExpandedEditorHeight = height;
             ClampValues();
         }
 
@@ -240,6 +265,44 @@ namespace SimplePlanes2PartEditor
             else if (FloatingButtonSize > 120f)
             {
                 FloatingButtonSize = 120f;
+            }
+
+            if (ExpandedEditorX < 0f)
+            {
+                ExpandedEditorX = 0f;
+            }
+
+            if (ExpandedEditorY < 0f)
+            {
+                ExpandedEditorY = 0f;
+            }
+
+            if (ExpandedEditorX > 4000f)
+            {
+                ExpandedEditorX = 4000f;
+            }
+
+            if (ExpandedEditorY > 4000f)
+            {
+                ExpandedEditorY = 4000f;
+            }
+
+            if (ExpandedEditorWidth < 360f)
+            {
+                ExpandedEditorWidth = 360f;
+            }
+            else if (ExpandedEditorWidth > 2400f)
+            {
+                ExpandedEditorWidth = 2400f;
+            }
+
+            if (ExpandedEditorHeight < 220f)
+            {
+                ExpandedEditorHeight = 220f;
+            }
+            else if (ExpandedEditorHeight > 1600f)
+            {
+                ExpandedEditorHeight = 1600f;
             }
         }
 

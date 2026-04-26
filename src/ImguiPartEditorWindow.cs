@@ -10,14 +10,22 @@ namespace SimplePlanes2PartEditor
         private readonly LocalizationProvider _localization;
         private readonly PluginSettings _settings;
         private Rect _windowRect;
+        private Rect _expandedEditorRect;
         private Vector2 _scrollPosition;
+        private Vector2 _expandedEditorScrollPosition;
         private string _searchTerm = string.Empty;
         private bool _layoutInitialized;
+        private bool _expandedEditorLayoutInitialized;
         private bool _showSettings;
         private bool _partInfoExpanded = true;
         private int _selectedGroupIndex;
+        private InspectableMember _expandedEditorMember;
         private bool _draggingWindow;
+        private bool _draggingExpandedEditor;
+        private bool _resizingExpandedEditor;
+        private bool _expandedEditorLayoutChanged;
         private Vector2 _dragOffset;
+        private Vector2 _expandedEditorDragOffset;
         private string _fontSizeText;
         private string _windowWidthText;
         private string _windowHeightText;
@@ -40,6 +48,7 @@ namespace SimplePlanes2PartEditor
         private GUIStyle _headerLabelStyle;
         private GUIStyle _headerLabelRightStyle;
         private GUIStyle _textFieldStyle;
+        private GUIStyle _textAreaStyle;
         private GUIStyle _readOnlyValueStyle;
         private GUIStyle _buttonStyle;
         private GUIStyle _sectionStyle;
@@ -62,6 +71,7 @@ namespace SimplePlanes2PartEditor
             _settings = settings;
             LoadSettingsText();
             _windowRect = new Rect(80f, 60f, _settings.WindowWidth, _settings.WindowHeight);
+            _expandedEditorRect = new Rect(_settings.ExpandedEditorX, _settings.ExpandedEditorY, _settings.ExpandedEditorWidth, _settings.ExpandedEditorHeight);
         }
 
         public Action RefreshRequested { get; set; }
@@ -77,7 +87,7 @@ namespace SimplePlanes2PartEditor
         public bool IsMouseOverWindow()
         {
             Vector2 mousePosition = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
-            return _windowRect.Contains(mousePosition);
+            return _windowRect.Contains(mousePosition) || IsMouseOverExpandedEditor(mousePosition);
         }
 
         public void Draw(SelectionReadResult selectionReadResult, string statusText, string updateNoticeText)
@@ -85,6 +95,8 @@ namespace SimplePlanes2PartEditor
             InitializeLayoutIfNeeded();
             ApplySkin();
             ConsumeScrollWheelBeforePanel();
+            InitializeExpandedEditorLayoutIfNeeded();
+            HandleExpandedEditorLayout();
             HandleWindowDrag();
             HandleBlankAreaDragScroll();
             DrawPanelChrome();
@@ -93,6 +105,7 @@ namespace SimplePlanes2PartEditor
             DrawWindow(selectionReadResult, statusText, updateNoticeText);
             GUILayout.EndArea();
 
+            DrawExpandedEditor();
             InputCapture.SetTextInputFocused(GUIUtility.keyboardControl != 0);
         }
 
@@ -110,6 +123,27 @@ namespace SimplePlanes2PartEditor
             height = Mathf.Clamp(_settings.WindowHeight, 480f, Mathf.Max(480f, Screen.height - 40f));
             _windowRect = new Rect((Screen.width - width) * 0.5f, (Screen.height - height) * 0.5f, width, height);
             _layoutInitialized = true;
+        }
+
+        private void InitializeExpandedEditorLayoutIfNeeded()
+        {
+            if (_expandedEditorLayoutInitialized || Screen.width <= 0 || Screen.height <= 0)
+            {
+                return;
+            }
+
+            _expandedEditorRect = new Rect(
+                Mathf.Clamp(_settings.ExpandedEditorX, 0f, Mathf.Max(0f, Screen.width - 360f)),
+                Mathf.Clamp(_settings.ExpandedEditorY, 0f, Mathf.Max(0f, Screen.height - 220f)),
+                Mathf.Clamp(_settings.ExpandedEditorWidth, 360f, Mathf.Max(360f, Screen.width - 40f)),
+                Mathf.Clamp(_settings.ExpandedEditorHeight, 220f, Mathf.Max(220f, Screen.height - 40f)));
+            ClampExpandedEditorToScreen();
+            _expandedEditorLayoutInitialized = true;
+        }
+
+        private bool IsMouseOverExpandedEditor(Vector2 mousePosition)
+        {
+            return _expandedEditorMember != null && _expandedEditorRect.Contains(mousePosition);
         }
 
         private Rect GetContentRect()
@@ -202,6 +236,7 @@ namespace SimplePlanes2PartEditor
                 _settings.SetUpdateCheckOptions(true, string.Empty);
                 _settings.SetSelectionRefreshInterval(0.25f);
                 _settings.SetFloatingButtonSize(52f);
+                _settings.SetExpandedEditorLayout(120f, 120f, 820f, 420f);
                 _settings.SetLockFloatingButtonPosition(false);
                 _settings.SetDisplayOptions(true, true, true);
                 LoadSettingsText();
@@ -313,9 +348,11 @@ namespace SimplePlanes2PartEditor
         {
             if (snapshot == null)
             {
+                _expandedEditorMember = null;
                 return;
             }
 
+            CloseExpandedEditorIfStale(snapshot);
             DrawPartInfo(snapshot);
             GUILayout.Space(10f);
 
@@ -331,6 +368,24 @@ namespace SimplePlanes2PartEditor
 
             DrawGroupChooserAndCustomXml(snapshot);
             DrawGroup(snapshot.Groups[_selectedGroupIndex]);
+        }
+
+        private void CloseExpandedEditorIfStale(SelectedPartSnapshot snapshot)
+        {
+            if (_expandedEditorMember == null || snapshot == null)
+            {
+                return;
+            }
+
+            foreach (InspectableGroup group in snapshot.Groups)
+            {
+                if (group.Members.Contains(_expandedEditorMember))
+                {
+                    return;
+                }
+            }
+
+            _expandedEditorMember = null;
         }
 
         private void DrawPartInfo(SelectedPartSnapshot snapshot)
@@ -506,7 +561,7 @@ namespace SimplePlanes2PartEditor
             {
                 GUILayout.Label(_localization.Get("column.access"), GetColumnHeaderStyle(), GUILayout.Width(GetAccessColumnWidth()));
             }
-            GUILayout.Label(_localization.Get("column.actions"), GetColumnHeaderStyle(), GUILayout.Width(170f));
+            GUILayout.Label(_localization.Get("column.actions"), GetColumnHeaderStyle(), GUILayout.Width(GetActionsColumnWidth()));
             GUILayout.EndHorizontal();
         }
 
@@ -531,8 +586,14 @@ namespace SimplePlanes2PartEditor
                 GUILayout.Label(member.Access, GetMutedLabelStyle(), GUILayout.Width(GetAccessColumnWidth()));
             }
 
+            GUI.enabled = member.CanWrite;
+            if (GUILayout.Button(_localization.Get("button.expandEditor"), GetButtonStyle(), GUILayout.Width(70f), GUILayout.Height(30f)))
+            {
+                OpenExpandedEditor(member);
+            }
+
             GUI.enabled = member.CanWrite && member.IsDirty;
-            if (GUILayout.Button(_localization.Get("button.apply"), GetButtonStyle(), GUILayout.Width(80f), GUILayout.Height(30f)))
+            if (GUILayout.Button(_localization.Get("button.apply"), GetButtonStyle(), GUILayout.Width(70f), GUILayout.Height(30f)))
             {
                 if (member.TryApply())
                 {
@@ -544,7 +605,7 @@ namespace SimplePlanes2PartEditor
                 }
             }
             GUI.enabled = member.CanWrite && member.IsDirty;
-            if (GUILayout.Button(_localization.Get("button.reset"), GetButtonStyle(), GUILayout.Width(80f), GUILayout.Height(30f)))
+            if (GUILayout.Button(_localization.Get("button.reset"), GetButtonStyle(), GUILayout.Width(70f), GUILayout.Height(30f)))
             {
                 member.ResetEditorValue();
             }
@@ -578,6 +639,11 @@ namespace SimplePlanes2PartEditor
             return 170f;
         }
 
+        private float GetActionsColumnWidth()
+        {
+            return 220f;
+        }
+
         private float GetValueColumnWidth()
         {
             float width = 470f;
@@ -592,6 +658,184 @@ namespace SimplePlanes2PartEditor
             }
 
             return width;
+        }
+
+        private void OpenExpandedEditor(InspectableMember member)
+        {
+            if (member == null || !member.CanWrite)
+            {
+                return;
+            }
+
+            _expandedEditorMember = member;
+            _expandedEditorScrollPosition = Vector2.zero;
+            InitializeExpandedEditorLayoutIfNeeded();
+        }
+
+        private void DrawExpandedEditor()
+        {
+            Rect contentRect;
+
+            if (_expandedEditorMember == null)
+            {
+                return;
+            }
+
+            DrawExpandedEditorChrome();
+            contentRect = new Rect(_expandedEditorRect.x + 14f, _expandedEditorRect.y + 42f, _expandedEditorRect.width - 28f, _expandedEditorRect.height - 58f);
+
+            GUILayout.BeginArea(contentRect);
+            GUILayout.BeginVertical();
+            GUILayout.Label(_expandedEditorMember.Name, GetTitleStyle());
+            GUILayout.Space(6f);
+            _expandedEditorScrollPosition = GUILayout.BeginScrollView(_expandedEditorScrollPosition, GUILayout.ExpandHeight(true));
+            _expandedEditorMember.EditorValue = DrawTextArea("expanded-editor-" + _expandedEditorMember.GetHashCode().ToString(CultureInfo.InvariantCulture), _expandedEditorMember.EditorValue ?? string.Empty);
+            GUILayout.EndScrollView();
+            GUILayout.Space(8f);
+            GUILayout.BeginHorizontal();
+            GUI.enabled = _expandedEditorMember.CanWrite && _expandedEditorMember.IsDirty;
+            if (GUILayout.Button(_localization.Get("button.apply"), GetButtonStyle(), GUILayout.Width(110f), GUILayout.Height(32f)))
+            {
+                ApplyExpandedEditorValue();
+            }
+
+            if (GUILayout.Button(_localization.Get("button.reset"), GetButtonStyle(), GUILayout.Width(110f), GUILayout.Height(32f)))
+            {
+                _expandedEditorMember.ResetEditorValue();
+            }
+            GUI.enabled = true;
+
+            GUILayout.FlexibleSpace();
+            if (GUILayout.Button(_localization.Get("button.close"), GetButtonStyle(), GUILayout.Width(110f), GUILayout.Height(32f)))
+            {
+                _expandedEditorMember = null;
+            }
+            GUILayout.EndHorizontal();
+            GUILayout.EndVertical();
+            GUILayout.EndArea();
+        }
+
+        private void ApplyExpandedEditorValue()
+        {
+            if (_expandedEditorMember.TryApply())
+            {
+                RaiseStatus(_localization.Get("status.applied") + ": " + _expandedEditorMember.Name);
+            }
+            else
+            {
+                RaiseStatus(_localization.Get("status.applyFailed") + ": " + _expandedEditorMember.Name);
+            }
+        }
+
+        private void DrawExpandedEditorChrome()
+        {
+            Rect shadowRect = new Rect(_expandedEditorRect.x + 8f, _expandedEditorRect.y + 8f, _expandedEditorRect.width, _expandedEditorRect.height);
+            Rect resizeHandleRect = GetExpandedEditorResizeHandleRect();
+
+            DrawRect(shadowRect, new Color(0f, 0f, 0f, 0.32f));
+            DrawRect(_expandedEditorRect, new Color(0.035f, 0.045f, 0.06f, 0.98f));
+            DrawRect(new Rect(_expandedEditorRect.x, _expandedEditorRect.y, _expandedEditorRect.width, 34f), new Color(0.02f, 0.08f, 0.18f, 1f));
+            DrawBorder(_expandedEditorRect, new Color(0.2f, 0.48f, 0.86f, 1f));
+            DrawBorder(new Rect(_expandedEditorRect.x + 1f, _expandedEditorRect.y + 1f, _expandedEditorRect.width - 2f, _expandedEditorRect.height - 2f), new Color(0.08f, 0.2f, 0.38f, 1f));
+            DrawRect(resizeHandleRect, new Color(0.1f, 0.36f, 0.8f, 0.85f));
+
+            GUI.Label(new Rect(_expandedEditorRect.x + 16f, _expandedEditorRect.y + 5f, _expandedEditorRect.width - 32f, 24f), _localization.Get("expandedEditor.title"), GetHeaderLabelStyle());
+        }
+
+        private void HandleExpandedEditorLayout()
+        {
+            Event currentEvent = Event.current;
+            Rect resizeHandleRect;
+
+            if (currentEvent == null || _expandedEditorMember == null)
+            {
+                return;
+            }
+
+            resizeHandleRect = GetExpandedEditorResizeHandleRect();
+            if (currentEvent.type == EventType.MouseDown && currentEvent.button == 0)
+            {
+                if (resizeHandleRect.Contains(currentEvent.mousePosition))
+                {
+                    _resizingExpandedEditor = true;
+                    _expandedEditorLayoutChanged = false;
+                    currentEvent.Use();
+                    return;
+                }
+
+                if (IsExpandedEditorBorder(currentEvent.mousePosition))
+                {
+                    _draggingExpandedEditor = true;
+                    _expandedEditorLayoutChanged = false;
+                    _expandedEditorDragOffset = currentEvent.mousePosition - new Vector2(_expandedEditorRect.x, _expandedEditorRect.y);
+                    currentEvent.Use();
+                }
+            }
+            else if (currentEvent.type == EventType.MouseDrag && _draggingExpandedEditor)
+            {
+                _expandedEditorRect.x = currentEvent.mousePosition.x - _expandedEditorDragOffset.x;
+                _expandedEditorRect.y = currentEvent.mousePosition.y - _expandedEditorDragOffset.y;
+                ClampExpandedEditorToScreen();
+                _expandedEditorLayoutChanged = true;
+                currentEvent.Use();
+            }
+            else if (currentEvent.type == EventType.MouseDrag && _resizingExpandedEditor)
+            {
+                _expandedEditorRect.width = Mathf.Max(360f, currentEvent.mousePosition.x - _expandedEditorRect.x);
+                _expandedEditorRect.height = Mathf.Max(220f, currentEvent.mousePosition.y - _expandedEditorRect.y);
+                ClampExpandedEditorToScreen();
+                _expandedEditorLayoutChanged = true;
+                currentEvent.Use();
+            }
+            else if (currentEvent.type == EventType.MouseUp)
+            {
+                if ((_draggingExpandedEditor || _resizingExpandedEditor) && _expandedEditorLayoutChanged)
+                {
+                    SaveExpandedEditorLayout();
+                }
+
+                _draggingExpandedEditor = false;
+                _resizingExpandedEditor = false;
+                _expandedEditorLayoutChanged = false;
+            }
+        }
+
+        private bool IsExpandedEditorBorder(Vector2 mousePosition)
+        {
+            const float borderWidth = 12f;
+            Rect innerRect;
+
+            if (!_expandedEditorRect.Contains(mousePosition))
+            {
+                return false;
+            }
+
+            innerRect = new Rect(
+                _expandedEditorRect.x + borderWidth,
+                _expandedEditorRect.y + borderWidth,
+                _expandedEditorRect.width - borderWidth * 2f,
+                _expandedEditorRect.height - borderWidth * 2f);
+            return !innerRect.Contains(mousePosition);
+        }
+
+        private Rect GetExpandedEditorResizeHandleRect()
+        {
+            const float handleSize = 22f;
+            return new Rect(_expandedEditorRect.xMax - handleSize - 5f, _expandedEditorRect.yMax - handleSize - 5f, handleSize, handleSize);
+        }
+
+        private void ClampExpandedEditorToScreen()
+        {
+            _expandedEditorRect.width = Mathf.Clamp(_expandedEditorRect.width, 360f, Mathf.Max(360f, Screen.width - 20f));
+            _expandedEditorRect.height = Mathf.Clamp(_expandedEditorRect.height, 220f, Mathf.Max(220f, Screen.height - 20f));
+            _expandedEditorRect.x = Mathf.Clamp(_expandedEditorRect.x, 0f, Mathf.Max(0f, Screen.width - _expandedEditorRect.width));
+            _expandedEditorRect.y = Mathf.Clamp(_expandedEditorRect.y, 0f, Mathf.Max(0f, Screen.height - _expandedEditorRect.height));
+        }
+
+        private void SaveExpandedEditorLayout()
+        {
+            _settings.SetExpandedEditorLayout(_expandedEditorRect.x, _expandedEditorRect.y, _expandedEditorRect.width, _expandedEditorRect.height);
+            SaveSettings();
         }
 
         private void ApplySkin()
@@ -635,6 +879,17 @@ namespace SimplePlanes2PartEditor
                 }
             }
 
+            return after;
+        }
+
+        private string DrawTextArea(string controlName, string value)
+        {
+            string before = value ?? string.Empty;
+            string after;
+
+            GUI.SetNextControlName(controlName);
+            after = GUILayout.TextArea(before, GetTextAreaStyle(), GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true), GUILayout.MinHeight(180f));
+            DrawTextFieldBorder(GUILayoutUtility.GetLastRect(), GUI.GetNameOfFocusedControl() == controlName);
             return after;
         }
 
@@ -744,6 +999,11 @@ namespace SimplePlanes2PartEditor
                 return;
             }
 
+            if (!_draggingWindow && IsMouseOverExpandedEditor(currentEvent.mousePosition))
+            {
+                return;
+            }
+
             if (currentEvent.type == EventType.MouseDown && currentEvent.button == 0 && headerRect.Contains(currentEvent.mousePosition))
             {
                 _draggingWindow = true;
@@ -768,7 +1028,8 @@ namespace SimplePlanes2PartEditor
             Event currentEvent = Event.current;
             Rect contentRect = GetContentRect();
 
-            if (currentEvent == null || _showSettings || GUIUtility.keyboardControl != 0 || GUIUtility.hotControl != 0)
+            if (currentEvent == null || _showSettings || GUIUtility.keyboardControl != 0 || GUIUtility.hotControl != 0 ||
+                IsMouseOverExpandedEditor(currentEvent.mousePosition))
             {
                 return;
             }
@@ -913,6 +1174,27 @@ namespace SimplePlanes2PartEditor
 
             _textFieldStyle.fontSize = _settings.FontSize;
             return _textFieldStyle;
+        }
+
+        private GUIStyle GetTextAreaStyle()
+        {
+            if (_textAreaStyle == null)
+            {
+                _textAreaStyle = new GUIStyle(GUI.skin.textArea);
+                _textAreaStyle.normal.background = GetTextFieldBackgroundTexture();
+                _textAreaStyle.hover.background = GetTextFieldBackgroundTexture();
+                _textAreaStyle.active.background = GetTextFieldBackgroundTexture();
+                _textAreaStyle.focused.background = GetTextFieldBackgroundTexture();
+                _textAreaStyle.normal.textColor = Color.white;
+                _textAreaStyle.hover.textColor = Color.white;
+                _textAreaStyle.active.textColor = Color.white;
+                _textAreaStyle.focused.textColor = Color.white;
+                _textAreaStyle.padding = new RectOffset(10, 10, 8, 8);
+                _textAreaStyle.wordWrap = true;
+            }
+
+            _textAreaStyle.fontSize = _settings.FontSize;
+            return _textAreaStyle;
         }
 
         private static void DrawTextFieldBorder(Rect rect, bool focused)
