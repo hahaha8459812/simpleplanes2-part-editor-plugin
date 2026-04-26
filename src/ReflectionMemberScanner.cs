@@ -10,10 +10,13 @@ namespace SimplePlanes2PartEditor
     {
         private readonly int _maxMembersPerGroup;
 
-        public ReflectionMemberScanner(int maxMembersPerGroup)
+        public ReflectionMemberScanner(int maxMembersPerGroup, bool showRuntimeCacheMembers)
         {
             _maxMembersPerGroup = Math.Max(20, maxMembersPerGroup);
+            ShowRuntimeCacheMembers = showRuntimeCacheMembers;
         }
+
+        public bool ShowRuntimeCacheMembers { get; set; }
 
         public List<InspectableMember> ScanDisplayableMembers(object target)
         {
@@ -26,7 +29,7 @@ namespace SimplePlanes2PartEditor
             }
 
             AddProperties(target, members, seenNames);
-            AddFields(target, members, seenNames);
+            AddFields(target, members, seenNames, ShowRuntimeCacheMembers);
             members.Sort(CompareMembers);
 
             if (members.Count > _maxMembersPerGroup)
@@ -82,7 +85,7 @@ namespace SimplePlanes2PartEditor
             }
         }
 
-        private static void AddFields(object target, List<InspectableMember> members, HashSet<string> seenNames)
+        private static void AddFields(object target, List<InspectableMember> members, HashSet<string> seenNames, bool showRuntimeCacheMembers)
         {
             BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
             FieldInfo[] fields = target.GetType().GetFields(flags);
@@ -90,7 +93,7 @@ namespace SimplePlanes2PartEditor
             foreach (FieldInfo field in fields)
             {
                 object value;
-                if (ShouldSkipField(field) || field.IsStatic || !IsDisplayableType(field.FieldType) || !seenNames.Add("F:" + field.Name))
+                if (ShouldSkipField(field, showRuntimeCacheMembers) || field.IsStatic || !IsDisplayableType(field.FieldType) || !seenNames.Add("F:" + field.Name))
                 {
                     continue;
                 }
@@ -122,9 +125,14 @@ namespace SimplePlanes2PartEditor
                    name.StartsWith("__", StringComparison.Ordinal);
         }
 
-        private static bool ShouldSkipField(FieldInfo field)
+        private static bool ShouldSkipField(FieldInfo field, bool showRuntimeCacheMembers)
         {
             if (field == null || string.IsNullOrEmpty(field.Name) || field.Name.StartsWith("__", StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (!showRuntimeCacheMembers && IsRuntimeCacheFieldName(field.Name))
             {
                 return true;
             }
@@ -132,6 +140,15 @@ namespace SimplePlanes2PartEditor
             // Auto-property backing fields are represented by their property row
             // when possible, so keep the list readable and avoid duplicate rows.
             return field.Name.StartsWith("<", StringComparison.Ordinal) && field.Name.EndsWith(">k__BackingField", StringComparison.Ordinal);
+        }
+
+        private static bool IsRuntimeCacheFieldName(string fieldName)
+        {
+            return string.Equals(fieldName, "_loadedMassCached", StringComparison.Ordinal) ||
+                   string.Equals(fieldName, "_recalculateLoadedMass", StringComparison.Ordinal) ||
+                   fieldName.IndexOf("cache", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   fieldName.IndexOf("cached", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   fieldName.IndexOf("recalculate", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static bool IsDisplayableType(Type type)

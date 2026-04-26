@@ -27,6 +27,7 @@ namespace SimplePlanes2PartEditor
         public bool ShowTypeColumn { get; private set; }
         public bool ShowAccessColumn { get; private set; }
         public bool ShowFullTypeName { get; private set; }
+        public bool ShowRuntimeCacheMembers { get; private set; }
 
         private PluginSettings()
         {
@@ -51,6 +52,7 @@ namespace SimplePlanes2PartEditor
             ShowTypeColumn = true;
             ShowAccessColumn = true;
             ShowFullTypeName = true;
+            ShowRuntimeCacheMembers = false;
         }
 
         public static PluginSettings CreateDefault()
@@ -84,6 +86,7 @@ namespace SimplePlanes2PartEditor
             settings.ShowTypeColumn = GetBool(values, "showTypeColumn", settings.ShowTypeColumn);
             settings.ShowAccessColumn = GetBool(values, "showAccessColumn", settings.ShowAccessColumn);
             settings.ShowFullTypeName = GetBool(values, "showFullTypeName", settings.ShowFullTypeName);
+            settings.ShowRuntimeCacheMembers = GetBool(values, "showRuntimeCacheMembers", settings.ShowRuntimeCacheMembers);
             settings.ClampValues();
             return settings;
         }
@@ -111,7 +114,8 @@ namespace SimplePlanes2PartEditor
                    "  \"lockFloatingButtonPosition\": " + LockFloatingButtonPosition.ToString().ToLowerInvariant() + ",\n" +
                    "  \"showTypeColumn\": " + ShowTypeColumn.ToString().ToLowerInvariant() + ",\n" +
                    "  \"showAccessColumn\": " + ShowAccessColumn.ToString().ToLowerInvariant() + ",\n" +
-                   "  \"showFullTypeName\": " + ShowFullTypeName.ToString().ToLowerInvariant() + "\n" +
+                   "  \"showFullTypeName\": " + ShowFullTypeName.ToString().ToLowerInvariant() + ",\n" +
+                   "  \"showRuntimeCacheMembers\": " + ShowRuntimeCacheMembers.ToString().ToLowerInvariant() + "\n" +
                    "}\n";
         }
 
@@ -184,6 +188,11 @@ namespace SimplePlanes2PartEditor
             ShowTypeColumn = showTypeColumn;
             ShowAccessColumn = showAccessColumn;
             ShowFullTypeName = showFullTypeName;
+        }
+
+        public void SetRuntimeCacheMembersVisible(bool visible)
+        {
+            ShowRuntimeCacheMembers = visible;
         }
 
         private void ClampValues()

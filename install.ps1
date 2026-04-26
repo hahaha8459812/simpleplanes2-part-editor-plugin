@@ -14,6 +14,8 @@ $pluginSourceRoot = Join-Path $sourceRoot "BepInEx\plugins\SimplePlanes2PartEdit
 $pluginTargetRoot = Join-Path $GameDir "BepInEx\plugins\SimplePlanes2PartEditor"
 $settingsSourcePath = Join-Path $pluginSourceRoot "settings.json"
 $settingsTargetPath = Join-Path $pluginTargetRoot "settings.json"
+$bepInExCoreSourceRoot = Join-Path $sourceRoot "BepInEx\core"
+$bepInExCoreTargetRoot = Join-Path $GameDir "BepInEx\core"
 
 function Update-SettingsWithMissingDefaults {
     param(
@@ -58,6 +60,23 @@ if (-not (Test-Path (Join-Path $GameDir "SimplePlanes 2.exe"))) {
 
 if (-not (Test-Path $pluginSourceRoot)) {
     throw "This installer should be run from the extracted release package root."
+}
+
+if (Test-Path (Join-Path $sourceRoot "winhttp.dll")) {
+    Copy-Item -Path (Join-Path $sourceRoot "winhttp.dll") -Destination (Join-Path $GameDir "winhttp.dll") -Force
+}
+
+if (Test-Path (Join-Path $sourceRoot "doorstop_config.ini")) {
+    Copy-Item -Path (Join-Path $sourceRoot "doorstop_config.ini") -Destination (Join-Path $GameDir "doorstop_config.ini") -Force
+}
+
+if (Test-Path (Join-Path $sourceRoot ".doorstop_version")) {
+    Copy-Item -Path (Join-Path $sourceRoot ".doorstop_version") -Destination (Join-Path $GameDir ".doorstop_version") -Force
+}
+
+if (Test-Path $bepInExCoreSourceRoot) {
+    New-Item -ItemType Directory -Force -Path $bepInExCoreTargetRoot | Out-Null
+    Copy-Item -Path (Join-Path $bepInExCoreSourceRoot "*") -Destination $bepInExCoreTargetRoot -Recurse -Force
 }
 
 New-Item -ItemType Directory -Force -Path $pluginTargetRoot | Out-Null

@@ -19,5 +19,6 @@
   "lockFloatingButtonPosition": false,
   "showTypeColumn": true,
   "showAccessColumn": true,
-  "showFullTypeName": true
+  "showFullTypeName": true,
+  "showRuntimeCacheMembers": false
 }

@@ -58,6 +58,11 @@ namespace SimplePlanes2PartEditor
 
         public bool CanWrite { get; private set; }
 
+        public object TargetObject
+        {
+            get { return _target; }
+        }
+
         public string Error { get; private set; }
 
         public bool IsDirty

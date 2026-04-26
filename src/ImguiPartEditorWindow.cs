@@ -41,6 +41,7 @@ namespace SimplePlanes2PartEditor
         private bool _showTypeColumn;
         private bool _showAccessColumn;
         private bool _showFullTypeName;
+        private bool _showRuntimeCacheMembers;
         private string _customXmlAttributeName = string.Empty;
         private string _customXmlAttributeValue = string.Empty;
 
@@ -86,6 +87,8 @@ namespace SimplePlanes2PartEditor
 
         public Action SettingsSaveRequested { get; set; }
 
+        public Action<InspectableMember> MemberApplied { get; set; }
+
         public bool IsMouseOverWindow()
         {
             Vector2 mousePosition = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
@@ -101,7 +104,7 @@ namespace SimplePlanes2PartEditor
             HandleExpandedEditorLayout();
             HandleWindowDrag();
             HandleBlankAreaDragScroll();
-            DrawPanelChrome();
+            DrawPanelChrome(updateNoticeText);
 
             GUILayout.BeginArea(GetContentRect());
             DrawWindow(selectionReadResult, statusText, updateNoticeText);
@@ -223,6 +226,7 @@ namespace SimplePlanes2PartEditor
             _showTypeColumn = GUILayout.Toggle(_showTypeColumn, _localization.Get("settings.showTypeColumn"));
             _showAccessColumn = GUILayout.Toggle(_showAccessColumn, _localization.Get("settings.showAccessColumn"));
             _showFullTypeName = GUILayout.Toggle(_showFullTypeName, _localization.Get("settings.showFullTypeName"));
+            _showRuntimeCacheMembers = GUILayout.Toggle(_showRuntimeCacheMembers, _localization.Get("settings.showRuntimeCacheMembers"));
             GUILayout.Space(8f);
             GUILayout.Label(_localization.Get("settings.hint"), GetMutedLabelStyle());
             GUILayout.BeginHorizontal();
@@ -241,6 +245,7 @@ namespace SimplePlanes2PartEditor
                 _settings.SetExpandedEditorLayout(120f, 120f, 820f, 420f);
                 _settings.SetLockFloatingButtonPosition(false);
                 _settings.SetDisplayOptions(true, true, true);
+                _settings.SetRuntimeCacheMembersVisible(false);
                 LoadSettingsText();
                 ApplyWindowSizeFromSettings();
                 SaveSettings();
@@ -290,6 +295,7 @@ namespace SimplePlanes2PartEditor
             _settings.SetFloatingButtonSize(floatingButtonSize);
             _settings.SetLockFloatingButtonPosition(_lockFloatingButtonPosition);
             _settings.SetDisplayOptions(_showTypeColumn, _showAccessColumn, _showFullTypeName);
+            _settings.SetRuntimeCacheMembersVisible(_showRuntimeCacheMembers);
             LoadSettingsText();
             ApplyWindowSizeFromSettings();
             SaveSettings();
@@ -311,6 +317,7 @@ namespace SimplePlanes2PartEditor
             _showTypeColumn = _settings.ShowTypeColumn;
             _showAccessColumn = _settings.ShowAccessColumn;
             _showFullTypeName = _settings.ShowFullTypeName;
+            _showRuntimeCacheMembers = _settings.ShowRuntimeCacheMembers;
         }
 
         private void ApplyWindowSizeFromSettings()
@@ -726,6 +733,11 @@ namespace SimplePlanes2PartEditor
         {
             if (member.TryApply())
             {
+                if (MemberApplied != null)
+                {
+                    MemberApplied(member);
+                }
+
                 RaiseStatus(_localization.Get("status.applied") + ": " + member.Name);
             }
             else
@@ -1054,16 +1066,23 @@ namespace SimplePlanes2PartEditor
             _windowRect.y = Mathf.Clamp(_windowRect.y, 0f, Mathf.Max(0f, Screen.height - _windowRect.height));
         }
 
-        private void DrawPanelChrome()
+        private void DrawPanelChrome(string updateNoticeText)
         {
             Rect shadowRect = new Rect(_windowRect.x + 8f, _windowRect.y + 8f, _windowRect.width, _windowRect.height);
+            string title = _localization.Get("window.title");
+
+            if (!string.IsNullOrEmpty(updateNoticeText))
+            {
+                title += "  [" + _localization.Get("update.titleBadge") + "]";
+            }
+
             DrawRect(shadowRect, new Color(0f, 0f, 0f, 0.28f));
             DrawRect(_windowRect, new Color(0.035f, 0.045f, 0.06f, _settings.BackgroundOpacity));
             DrawRect(new Rect(_windowRect.x, _windowRect.y, _windowRect.width, 42f), new Color(0.02f, 0.08f, 0.18f, 1f));
             DrawRect(new Rect(_windowRect.x, _windowRect.y + 42f, _windowRect.width, 4f), new Color(0.08f, 0.42f, 1f, 1f));
             DrawBorder(_windowRect, new Color(0.2f, 0.38f, 0.7f, 1f));
 
-            GUI.Label(new Rect(_windowRect.x + 20f, _windowRect.y + 7f, _windowRect.width - 220f, 28f), _localization.Get("window.title"), GetHeaderLabelStyle());
+            GUI.Label(new Rect(_windowRect.x + 20f, _windowRect.y + 7f, _windowRect.width - 300f, 28f), title, GetHeaderLabelStyle());
             GUI.Label(new Rect(_windowRect.x + _windowRect.width - 260f, _windowRect.y + 8f, 240f, 24f), _localization.Get("label.hotkey"), GetHeaderLabelRightStyle());
         }
 

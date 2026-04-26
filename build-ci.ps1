@@ -57,6 +57,30 @@ function Copy-DirectoryContents {
     Copy-Item -Path (Join-Path $Source "*") -Destination $Destination -Recurse -Force
 }
 
+function Copy-BepInExRuntime {
+    param(
+        [string]$SourceRoot,
+        [string]$DestinationRoot
+    )
+
+    $sourceCore = Join-Path $SourceRoot "BepInEx\core"
+    $destinationCore = Join-Path $DestinationRoot "BepInEx\core"
+
+    Assert-RequiredFile (Join-Path $SourceRoot "winhttp.dll")
+    Assert-RequiredFile (Join-Path $SourceRoot "doorstop_config.ini")
+    Assert-RequiredFile (Join-Path $sourceCore "BepInEx.dll")
+
+    Copy-Item -Path (Join-Path $SourceRoot "winhttp.dll") -Destination (Join-Path $DestinationRoot "winhttp.dll") -Force
+    Copy-Item -Path (Join-Path $SourceRoot "doorstop_config.ini") -Destination (Join-Path $DestinationRoot "doorstop_config.ini") -Force
+
+    if (Test-Path (Join-Path $SourceRoot ".doorstop_version")) {
+        Copy-Item -Path (Join-Path $SourceRoot ".doorstop_version") -Destination (Join-Path $DestinationRoot ".doorstop_version") -Force
+    }
+
+    New-Item -ItemType Directory -Force -Path $destinationCore | Out-Null
+    Copy-DirectoryContents -Source $sourceCore -Destination $destinationCore
+}
+
 function Invoke-DownloadFile {
     param(
         [string]$Uri,
@@ -166,7 +190,8 @@ function New-ReleasePackage {
         Remove-Item -Recurse -Force $packageRoot
     }
 
-    New-Item -ItemType Directory -Force -Path $pluginRoot, $localizationRoot | Out-Null
+    New-Item -ItemType Directory -Force -Path $packageRoot, $pluginRoot, $localizationRoot | Out-Null
+    Copy-BepInExRuntime -SourceRoot $bepInExRoot -DestinationRoot $packageRoot
     Copy-Item -Path $pluginDllPath -Destination (Join-Path $pluginRoot "SimplePlanes2PartEditor.dll") -Force
     Copy-Item -Path (Join-Path $projectRoot "content\settings.json") -Destination (Join-Path $pluginRoot "settings.json") -Force
     Copy-DirectoryContents -Source (Join-Path $projectRoot "content\localization") -Destination $localizationRoot

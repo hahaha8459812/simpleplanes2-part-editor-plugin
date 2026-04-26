@@ -18,6 +18,8 @@ Download the latest version from GitHub Releases:
 
 https://github.com/hahaha8459812/simpleplanes2-part-editor-plugin/releases
 
+The release package already includes `BepInEx 5 Mono x64`. You do not need to download BepInEx separately.
+
 After downloading `SimplePlanes2PartEditor-Release.zip`:
 
 1. Close `SimplePlanes 2`.
@@ -36,6 +38,22 @@ Custom game directory:
 
 ```powershell
 .\install.ps1 -GameDir "D:\SteamLibrary\steamapps\common\SimplePlanes 2"
+```
+
+After installation, the game folder should contain:
+
+```text
+SimplePlanes 2\
+├─ winhttp.dll
+├─ doorstop_config.ini
+├─ BepInEx\
+│  ├─ core\
+│  └─ plugins\
+│     └─ SimplePlanes2PartEditor\
+│        ├─ SimplePlanes2PartEditor.dll
+│        ├─ settings.json
+│        └─ localization\
+└─ SimplePlanes 2.exe
 ```
 
 ## Update Notice

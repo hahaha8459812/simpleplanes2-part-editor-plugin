@@ -11,13 +11,15 @@ namespace SimplePlanes2PartEditor
     {
         public const string PluginGuid = "com.codex.simpleplanes2.parteditor";
         public const string PluginName = "SimplePlanes 2 Part Editor";
-        public const string PluginVersion = "0.3.3";
+        public const string PluginVersion = "0.3.4";
 
         private string _pluginRootPath;
         private string _settingsPath;
         private PluginSettings _settings;
         private LocalizationProvider _localization;
         private DesignerSelectionService _selectionService;
+        private ReflectionMemberScanner _memberScanner;
+        private PartRuntimeRefreshService _partRuntimeRefreshService;
         private UpdateCheckService _updateCheckService;
         private ImguiPartEditorWindow _window;
         private SelectionReadResult _currentSelection;
@@ -116,7 +118,9 @@ namespace SimplePlanes2PartEditor
             _toggleWindowKeyCode = ParseKeyCode(_settings.ToggleWindowHotkey, KeyCode.F8);
             _localization = new LocalizationProvider(Path.Combine(_pluginRootPath, "localization"));
             _localization.Load(_settings.Language);
-            _selectionService = new DesignerSelectionService(new ReflectionMemberScanner(_settings.MaxMembersPerGroup));
+            _memberScanner = new ReflectionMemberScanner(_settings.MaxMembersPerGroup, _settings.ShowRuntimeCacheMembers);
+            _selectionService = new DesignerSelectionService(_memberScanner);
+            _partRuntimeRefreshService = new PartRuntimeRefreshService();
             _updateCheckService = new UpdateCheckService();
             _window = new ImguiPartEditorWindow(_localization, _settings)
             {
@@ -124,6 +128,7 @@ namespace SimplePlanes2PartEditor
                 LanguageToggleRequested = ToggleLanguage,
                 CopyXmlRequested = CopyCurrentPartXml,
                 StatusChanged = SetStatusText,
+                MemberApplied = RefreshPartRuntimeStateAfterApply,
                 SettingsSaveRequested = SaveSettings
             };
             _statusText = _localization.Get("status.ready");
@@ -256,12 +261,26 @@ namespace SimplePlanes2PartEditor
             _statusText = statusText;
         }
 
+        private void RefreshPartRuntimeStateAfterApply(InspectableMember member)
+        {
+            if (_partRuntimeRefreshService != null)
+            {
+                _partRuntimeRefreshService.TryRefreshAfterApply(member);
+            }
+        }
+
         private void SaveSettings()
         {
             File.WriteAllText(_settingsPath, _settings.ToJson(), System.Text.Encoding.UTF8);
             _toggleWindowKeyCode = ParseKeyCode(_settings.ToggleWindowHotkey, KeyCode.F8);
+            if (_memberScanner != null)
+            {
+                _memberScanner.ShowRuntimeCacheMembers = _settings.ShowRuntimeCacheMembers;
+            }
+
             _nextSelectionRefreshTime = 0f;
             ResetUpdateNotice();
+            RefreshSelection();
         }
 
         private void ResetUpdateNotice()

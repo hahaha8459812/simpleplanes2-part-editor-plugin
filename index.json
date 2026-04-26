@@ -1,4 +1,4 @@
 {
-  "version": "0.3.3",
-  "releaseNotes": "Removed the experimental Apply+Refresh action. Apply now shows a clearer reminder: if changes are not used during flight test, back up the craft first and then save it; safe changes can be saved directly."
+  "version": "0.3.4",
+  "releaseNotes": "Apply now notifies SP2 runtime refresh hooks, recalculates loaded mass, and marks designer structure changes. Runtime cache fields are hidden by default with a settings toggle. Update notices also appear in the panel title. Release packages now include BepInEx 5 Mono x64 so users do not need a separate BepInEx download."
 }
