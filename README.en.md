@@ -14,7 +14,11 @@ This is an in-game part data editor for `SimplePlanes 2`, independent from the l
 
 ## Install
 
-After downloading or building `SimplePlanes2PartEditor-Release.zip`:
+Download the latest version from GitHub Releases:
+
+https://github.com/hahaha8459812/simpleplanes2-part-editor-plugin/releases
+
+After downloading `SimplePlanes2PartEditor-Release.zip`:
 
 1. Close `SimplePlanes 2`.
 2. Extract the zip.

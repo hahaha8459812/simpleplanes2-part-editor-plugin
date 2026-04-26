@@ -14,7 +14,11 @@
 
 ## 安装
 
-普通测试者下载或构建 `SimplePlanes2PartEditor-Release.zip` 后：
+普通测试者请在 GitHub Releases 下载最新版：
+
+https://github.com/hahaha8459812/simpleplanes2-part-editor-plugin/releases
+
+下载 `SimplePlanes2PartEditor-Release.zip` 后：
 
 1. 关闭 `SimplePlanes 2`。
 2. 解压压缩包。
