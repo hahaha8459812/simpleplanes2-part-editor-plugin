@@ -20,6 +20,8 @@ namespace SimplePlanes2PartEditor
         private bool _partInfoExpanded = true;
         private int _selectedGroupIndex;
         private InspectableMember _expandedEditorMember;
+        private InspectableGroup _expandedEditorGroup;
+        private SelectedPartSnapshot _expandedEditorSnapshot;
         private bool _draggingWindow;
         private bool _draggingExpandedEditor;
         private bool _resizingExpandedEditor;
@@ -348,7 +350,7 @@ namespace SimplePlanes2PartEditor
         {
             if (snapshot == null)
             {
-                _expandedEditorMember = null;
+                CloseExpandedEditor();
                 return;
             }
 
@@ -367,7 +369,7 @@ namespace SimplePlanes2PartEditor
             }
 
             DrawGroupChooserAndCustomXml(snapshot);
-            DrawGroup(snapshot.Groups[_selectedGroupIndex]);
+            DrawGroup(snapshot, snapshot.Groups[_selectedGroupIndex]);
         }
 
         private void CloseExpandedEditorIfStale(SelectedPartSnapshot snapshot)
@@ -381,11 +383,13 @@ namespace SimplePlanes2PartEditor
             {
                 if (group.Members.Contains(_expandedEditorMember))
                 {
+                    _expandedEditorGroup = group;
+                    _expandedEditorSnapshot = snapshot;
                     return;
                 }
             }
 
-            _expandedEditorMember = null;
+            CloseExpandedEditor();
         }
 
         private void DrawPartInfo(SelectedPartSnapshot snapshot)
@@ -508,7 +512,7 @@ namespace SimplePlanes2PartEditor
             GUILayout.EndVertical();
         }
 
-        private void DrawGroup(InspectableGroup group)
+        private void DrawGroup(SelectedPartSnapshot snapshot, InspectableGroup group)
         {
             int visibleCount = 0;
 
@@ -541,7 +545,7 @@ namespace SimplePlanes2PartEditor
                     continue;
                 }
 
-                DrawMemberRow(member);
+                DrawMemberRow(snapshot, group, member);
             }
 
             GUILayout.EndVertical();
@@ -565,7 +569,7 @@ namespace SimplePlanes2PartEditor
             GUILayout.EndHorizontal();
         }
 
-        private void DrawMemberRow(InspectableMember member)
+        private void DrawMemberRow(SelectedPartSnapshot snapshot, InspectableGroup group, InspectableMember member)
         {
             GUILayout.BeginHorizontal(_alternateRow ? GetRowAltStyle() : GetRowStyle(), GUILayout.MinHeight(34f));
             GUILayout.Label(member.Name, GetLabelStyle(), GUILayout.Width(GetNameColumnWidth()));
@@ -589,20 +593,19 @@ namespace SimplePlanes2PartEditor
             GUI.enabled = member.CanWrite;
             if (GUILayout.Button(_localization.Get("button.expandEditor"), GetButtonStyle(), GUILayout.Width(70f), GUILayout.Height(30f)))
             {
-                OpenExpandedEditor(member);
+                OpenExpandedEditor(snapshot, group, member);
             }
 
             GUI.enabled = member.CanWrite && member.IsDirty;
             if (GUILayout.Button(_localization.Get("button.apply"), GetButtonStyle(), GUILayout.Width(70f), GUILayout.Height(30f)))
             {
-                if (member.TryApply())
-                {
-                    RaiseStatus(_localization.Get("status.applied") + ": " + member.Name);
-                }
-                else
-                {
-                    RaiseStatus(_localization.Get("status.applyFailed") + ": " + member.Name);
-                }
+                ApplyMemberValue(member);
+            }
+
+            GUI.enabled = member.CanWrite && member.IsDirty;
+            if (GUILayout.Button(_localization.Get("button.applyRefresh"), GetButtonStyle(), GUILayout.Width(100f), GUILayout.Height(30f)))
+            {
+                ApplyMemberValueAndRefresh(snapshot, group, member);
             }
             GUI.enabled = member.CanWrite && member.IsDirty;
             if (GUILayout.Button(_localization.Get("button.reset"), GetButtonStyle(), GUILayout.Width(70f), GUILayout.Height(30f)))
@@ -641,7 +644,7 @@ namespace SimplePlanes2PartEditor
 
         private float GetActionsColumnWidth()
         {
-            return 220f;
+            return 330f;
         }
 
         private float GetValueColumnWidth()
@@ -660,16 +663,25 @@ namespace SimplePlanes2PartEditor
             return width;
         }
 
-        private void OpenExpandedEditor(InspectableMember member)
+        private void OpenExpandedEditor(SelectedPartSnapshot snapshot, InspectableGroup group, InspectableMember member)
         {
             if (member == null || !member.CanWrite)
             {
                 return;
             }
 
+            _expandedEditorSnapshot = snapshot;
+            _expandedEditorGroup = group;
             _expandedEditorMember = member;
             _expandedEditorScrollPosition = Vector2.zero;
             InitializeExpandedEditorLayoutIfNeeded();
+        }
+
+        private void CloseExpandedEditor()
+        {
+            _expandedEditorMember = null;
+            _expandedEditorGroup = null;
+            _expandedEditorSnapshot = null;
         }
 
         private void DrawExpandedEditor()
@@ -696,7 +708,12 @@ namespace SimplePlanes2PartEditor
             GUI.enabled = _expandedEditorMember.CanWrite && _expandedEditorMember.IsDirty;
             if (GUILayout.Button(_localization.Get("button.apply"), GetButtonStyle(), GUILayout.Width(110f), GUILayout.Height(32f)))
             {
-                ApplyExpandedEditorValue();
+                ApplyMemberValue(_expandedEditorMember);
+            }
+
+            if (GUILayout.Button(_localization.Get("button.applyRefresh"), GetButtonStyle(), GUILayout.Width(140f), GUILayout.Height(32f)))
+            {
+                ApplyMemberValueAndRefresh(_expandedEditorSnapshot, _expandedEditorGroup, _expandedEditorMember);
             }
 
             if (GUILayout.Button(_localization.Get("button.reset"), GetButtonStyle(), GUILayout.Width(110f), GUILayout.Height(32f)))
@@ -708,23 +725,49 @@ namespace SimplePlanes2PartEditor
             GUILayout.FlexibleSpace();
             if (GUILayout.Button(_localization.Get("button.close"), GetButtonStyle(), GUILayout.Width(110f), GUILayout.Height(32f)))
             {
-                _expandedEditorMember = null;
+                CloseExpandedEditor();
             }
             GUILayout.EndHorizontal();
             GUILayout.EndVertical();
             GUILayout.EndArea();
         }
 
-        private void ApplyExpandedEditorValue()
+        private void ApplyMemberValue(InspectableMember member)
         {
-            if (_expandedEditorMember.TryApply())
+            if (member.TryApply())
             {
-                RaiseStatus(_localization.Get("status.applied") + ": " + _expandedEditorMember.Name);
+                RaiseStatus(_localization.Get("status.applied") + ": " + member.Name);
             }
             else
             {
-                RaiseStatus(_localization.Get("status.applyFailed") + ": " + _expandedEditorMember.Name);
+                RaiseStatus(_localization.Get("status.applyFailed") + ": " + member.Name);
             }
+        }
+
+        private void ApplyMemberValueAndRefresh(SelectedPartSnapshot snapshot, InspectableGroup group, InspectableMember member)
+        {
+            PartRefreshResult refreshResult;
+
+            if (!member.TryApply())
+            {
+                RaiseStatus(_localization.Get("status.applyFailed") + ": " + member.Name);
+                return;
+            }
+
+            refreshResult = PartRefreshService.TryRefresh(snapshot, group);
+            if (refreshResult.HasError)
+            {
+                RaiseStatus(_localization.Get("status.applyRefreshPartial") + ": " + member.Name + " (" + refreshResult.Error + ")");
+                return;
+            }
+
+            if (refreshResult.InvokedMethodCount == 0)
+            {
+                RaiseStatus(_localization.Get("status.applyRefreshNoMethod") + ": " + member.Name);
+                return;
+            }
+
+            RaiseStatus(_localization.Get("status.applyRefreshed") + ": " + member.Name);
         }
 
         private void DrawExpandedEditorChrome()
