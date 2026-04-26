@@ -1,4 +1,4 @@
 {
-  "version": "0.3.0",
-  "releaseNotes": "Initial public test build. Includes in-game part data editing, custom XML attributes, floating designer button, localization, settings persistence, and lightweight selected-part refresh."
+  "version": "0.3.1",
+  "releaseNotes": "Added an expanded large text editor for editable member values. The editor supports saved position and size, border-only dragging, bottom-right resizing, and direct Apply/Reset controls."
 }
