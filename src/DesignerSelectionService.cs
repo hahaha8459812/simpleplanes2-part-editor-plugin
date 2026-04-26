@@ -115,7 +115,6 @@ namespace SimplePlanes2PartEditor
                 partId,
                 partTypeName,
                 partData.GetType().FullName,
-                selectedPart,
                 partData,
                 xmlText,
                 groups);

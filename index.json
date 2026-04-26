@@ -1,4 +1,4 @@
 {
-  "version": "0.3.2",
-  "releaseNotes": "Added the expanded large text editor and switched update checks to the GitHub Contents API raw response to avoid raw.githubusercontent.com branch cache delays after releases."
+  "version": "0.3.3",
+  "releaseNotes": "Removed the experimental Apply+Refresh action. Apply now shows a clearer reminder: if changes are not used during flight test, back up the craft first and then save it; safe changes can be saved directly."
 }

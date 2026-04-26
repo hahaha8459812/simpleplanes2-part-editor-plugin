@@ -603,11 +603,6 @@ namespace SimplePlanes2PartEditor
             }
 
             GUI.enabled = member.CanWrite && member.IsDirty;
-            if (GUILayout.Button(_localization.Get("button.applyRefresh"), GetButtonStyle(), GUILayout.Width(100f), GUILayout.Height(30f)))
-            {
-                ApplyMemberValueAndRefresh(snapshot, group, member);
-            }
-            GUI.enabled = member.CanWrite && member.IsDirty;
             if (GUILayout.Button(_localization.Get("button.reset"), GetButtonStyle(), GUILayout.Width(70f), GUILayout.Height(30f)))
             {
                 member.ResetEditorValue();
@@ -644,7 +639,7 @@ namespace SimplePlanes2PartEditor
 
         private float GetActionsColumnWidth()
         {
-            return 330f;
+            return 220f;
         }
 
         private float GetValueColumnWidth()
@@ -711,11 +706,6 @@ namespace SimplePlanes2PartEditor
                 ApplyMemberValue(_expandedEditorMember);
             }
 
-            if (GUILayout.Button(_localization.Get("button.applyRefresh"), GetButtonStyle(), GUILayout.Width(140f), GUILayout.Height(32f)))
-            {
-                ApplyMemberValueAndRefresh(_expandedEditorSnapshot, _expandedEditorGroup, _expandedEditorMember);
-            }
-
             if (GUILayout.Button(_localization.Get("button.reset"), GetButtonStyle(), GUILayout.Width(110f), GUILayout.Height(32f)))
             {
                 _expandedEditorMember.ResetEditorValue();
@@ -742,32 +732,6 @@ namespace SimplePlanes2PartEditor
             {
                 RaiseStatus(_localization.Get("status.applyFailed") + ": " + member.Name);
             }
-        }
-
-        private void ApplyMemberValueAndRefresh(SelectedPartSnapshot snapshot, InspectableGroup group, InspectableMember member)
-        {
-            PartRefreshResult refreshResult;
-
-            if (!member.TryApply())
-            {
-                RaiseStatus(_localization.Get("status.applyFailed") + ": " + member.Name);
-                return;
-            }
-
-            refreshResult = PartRefreshService.TryRefresh(snapshot, group);
-            if (refreshResult.HasError)
-            {
-                RaiseStatus(_localization.Get("status.applyRefreshPartial") + ": " + member.Name + " (" + refreshResult.Error + ")");
-                return;
-            }
-
-            if (refreshResult.InvokedMethodCount == 0)
-            {
-                RaiseStatus(_localization.Get("status.applyRefreshNoMethod") + ": " + member.Name);
-                return;
-            }
-
-            RaiseStatus(_localization.Get("status.applyRefreshed") + ": " + member.Name);
         }
 
         private void DrawExpandedEditorChrome()

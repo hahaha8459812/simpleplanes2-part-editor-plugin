@@ -10,7 +10,6 @@ namespace SimplePlanes2PartEditor
             string partId,
             string partTypeName,
             string partDataTypeName,
-            object selectedPartObject,
             object partDataObject,
             string xmlText,
             List<InspectableGroup> groups)
@@ -20,7 +19,6 @@ namespace SimplePlanes2PartEditor
             PartId = partId;
             PartTypeName = partTypeName;
             PartDataTypeName = partDataTypeName;
-            SelectedPartObject = selectedPartObject;
             PartDataObject = partDataObject;
             XmlText = xmlText;
             Groups = groups;
@@ -35,8 +33,6 @@ namespace SimplePlanes2PartEditor
         public string PartTypeName { get; private set; }
 
         public string PartDataTypeName { get; private set; }
-
-        public object SelectedPartObject { get; private set; }
 
         public object PartDataObject { get; private set; }
 
