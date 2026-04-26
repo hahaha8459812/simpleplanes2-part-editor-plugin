@@ -4,36 +4,13 @@
 
 这是一个独立于汉化插件的 `SimplePlanes 2` 游戏内零件数据编辑器项目。它借鉴 Overload 的“在游戏内查看和修改零件底层数据”思路，但实现路线会更贴合 SP2：优先面向会保存进 XML 的 `PartData` / `PartModifierData` 数据层，而不是默认暴露整棵 Unity 运行时对象。
 
-当前版本是 **第一阶段只读验证版**：用于确认插件加载、设计器选中零件读取、数据分组展示、XML 复制和中英文 UI 切换都可靠。它不会写回游戏数据。
-
 ## 项目定位
 
 - 独立运行，不依赖 SimplePlanes 2 本地化插件。
 - 基于 `BepInEx 5 Mono` 和 Unity IMGUI。
-- 默认安全：第一阶段只读，后续写回也会走 `Apply / Reset / Undo`。
+- 写回通过 `Apply / Reset` 控制，避免输入时立刻修改游戏数据。
 - 优先展示数据层：`Designer.SelectedPart -> PartScript -> PartData -> Modifiers`。
 - 插件 UI 内置中文/英文切换，并提供 JSON 本地化接口。
-
-## 当前功能
-
-- `F8` 打开/关闭编辑器面板。
-- 在设计器内读取当前选中的零件。
-- 展示当前零件名称、ID、PartType 和 PartData 类型。
-- 按组展示 `PartData` 与每个 `PartModifierData` 的可读简单成员。
-- 支持搜索属性名、类型、值和特性名。
-- 支持复制当前零件 `GenerateXml()` 生成的 XML 到剪贴板。
-- 支持面板内中文/英文切换。
-- 支持通过 `localization/*.json` 添加其他语言。
-- 支持打开面板时检查远端 `index.json`，发现新版本后在面板内提醒。
-
-## 暂不包含
-
-- 暂不写回字段。
-- 暂不做原始 XML 编辑。
-- 暂不暴露 `Transform`、`Collider`、`Rigidbody`、`GameObject` 等 Unity 运行时对象。
-- 暂不处理对称零件同步。
-
-这些能力会在选中零件链路验证稳定后逐步加入。
 
 ## 安装
 
