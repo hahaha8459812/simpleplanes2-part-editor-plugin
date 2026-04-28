@@ -9,6 +9,8 @@ namespace SimplePlanes2PartEditor
             string partName,
             string partId,
             string partTypeName,
+            string partTypeId,
+            string compatibilityLabelKey,
             string partDataTypeName,
             object partDataObject,
             string xmlText,
@@ -18,6 +20,8 @@ namespace SimplePlanes2PartEditor
             PartName = partName;
             PartId = partId;
             PartTypeName = partTypeName;
+            PartTypeId = partTypeId;
+            CompatibilityLabelKey = compatibilityLabelKey;
             PartDataTypeName = partDataTypeName;
             PartDataObject = partDataObject;
             XmlText = xmlText;
@@ -31,6 +35,10 @@ namespace SimplePlanes2PartEditor
         public string PartId { get; private set; }
 
         public string PartTypeName { get; private set; }
+
+        public string PartTypeId { get; private set; }
+
+        public string CompatibilityLabelKey { get; private set; }
 
         public string PartDataTypeName { get; private set; }
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace SimplePlanes2PartEditor
@@ -61,6 +62,19 @@ namespace SimplePlanes2PartEditor
         public object TargetObject
         {
             get { return _target; }
+        }
+
+        public IEnumerable<string> GetRuntimeRefreshMemberNames()
+        {
+            List<string> names = new List<string>();
+            AddUniqueName(names, Name);
+
+            if (!string.IsNullOrEmpty(Name) && !Name.StartsWith("_", StringComparison.Ordinal))
+            {
+                AddUniqueName(names, "_" + char.ToLowerInvariant(Name[0]) + Name.Substring(1));
+            }
+
+            return names;
         }
 
         public string Error { get; private set; }
@@ -163,6 +177,14 @@ namespace SimplePlanes2PartEditor
         private static bool Contains(string source, string searchTerm)
         {
             return source != null && source.IndexOf(searchTerm, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static void AddUniqueName(List<string> names, string name)
+        {
+            if (!string.IsNullOrEmpty(name) && !names.Contains(name))
+            {
+                names.Add(name);
+            }
         }
     }
 }
