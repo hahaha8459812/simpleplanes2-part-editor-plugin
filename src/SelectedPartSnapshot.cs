@@ -12,7 +12,6 @@ namespace SimplePlanes2PartEditor
             string partTypeId,
             string partDataTypeName,
             object partDataObject,
-            RuntimeDiagnosticSnapshot runtimeDiagnostics,
             string xmlText,
             List<InspectableGroup> groups)
         {
@@ -23,7 +22,6 @@ namespace SimplePlanes2PartEditor
             PartTypeId = partTypeId;
             PartDataTypeName = partDataTypeName;
             PartDataObject = partDataObject;
-            RuntimeDiagnostics = runtimeDiagnostics;
             XmlText = xmlText;
             Groups = groups;
         }
@@ -41,8 +39,6 @@ namespace SimplePlanes2PartEditor
         public string PartDataTypeName { get; private set; }
 
         public object PartDataObject { get; private set; }
-
-        public RuntimeDiagnosticSnapshot RuntimeDiagnostics { get; private set; }
 
         public string XmlText { get; private set; }
 

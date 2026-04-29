@@ -118,7 +118,6 @@ namespace SimplePlanes2PartEditor
                 partTypeId,
                 partData.GetType().FullName,
                 partData,
-                RuntimeDiagnosticSnapshot.FromPartData(partData, selectedPart),
                 xmlText,
                 groups);
         }
