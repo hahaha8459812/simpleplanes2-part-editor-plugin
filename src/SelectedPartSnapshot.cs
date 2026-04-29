@@ -10,9 +10,9 @@ namespace SimplePlanes2PartEditor
             string partId,
             string partTypeName,
             string partTypeId,
-            string compatibilityLabelKey,
             string partDataTypeName,
             object partDataObject,
+            RuntimeDiagnosticSnapshot runtimeDiagnostics,
             string xmlText,
             List<InspectableGroup> groups)
         {
@@ -21,9 +21,9 @@ namespace SimplePlanes2PartEditor
             PartId = partId;
             PartTypeName = partTypeName;
             PartTypeId = partTypeId;
-            CompatibilityLabelKey = compatibilityLabelKey;
             PartDataTypeName = partDataTypeName;
             PartDataObject = partDataObject;
+            RuntimeDiagnostics = runtimeDiagnostics;
             XmlText = xmlText;
             Groups = groups;
         }
@@ -38,11 +38,11 @@ namespace SimplePlanes2PartEditor
 
         public string PartTypeId { get; private set; }
 
-        public string CompatibilityLabelKey { get; private set; }
-
         public string PartDataTypeName { get; private set; }
 
         public object PartDataObject { get; private set; }
+
+        public RuntimeDiagnosticSnapshot RuntimeDiagnostics { get; private set; }
 
         public string XmlText { get; private set; }
 

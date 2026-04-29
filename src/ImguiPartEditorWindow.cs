@@ -48,6 +48,7 @@ namespace SimplePlanes2PartEditor
         private GUIStyle _titleStyle;
         private GUIStyle _labelStyle;
         private GUIStyle _mutedLabelStyle;
+        private GUIStyle _warningLabelStyle;
         private GUIStyle _headerLabelStyle;
         private GUIStyle _headerLabelRightStyle;
         private GUIStyle _textFieldStyle;
@@ -83,11 +84,19 @@ namespace SimplePlanes2PartEditor
 
         public Action CopyXmlRequested { get; set; }
 
+        public Action ModificationRecordingToggleRequested { get; set; }
+
+        public Func<bool> ModificationRecordingStateRequested { get; set; }
+
+        public Action<SelectedPartSnapshot> TestScriptRequested { get; set; }
+
+        public Action<ModificationRecordRequest> ModificationRecorded { get; set; }
+
         public Action<string> StatusChanged { get; set; }
 
         public Action SettingsSaveRequested { get; set; }
 
-        public Action<InspectableMember> MemberApplied { get; set; }
+        public Func<InspectableMember, bool> MemberApplied { get; set; }
 
         public bool IsMouseOverWindow()
         {
@@ -197,6 +206,17 @@ namespace SimplePlanes2PartEditor
                 LanguageToggleRequested();
             }
 
+            if (GUILayout.Button(GetModificationRecorderButtonText(), GetButtonStyle(), GUILayout.Width(150f), GUILayout.Height(34f)) && ModificationRecordingToggleRequested != null)
+            {
+                ModificationRecordingToggleRequested();
+            }
+
+            GUI.enabled = selectionReadResult != null && selectionReadResult.Snapshot != null;
+            if (GUILayout.Button(_localization.Get("button.runTestScript"), GetButtonStyle(), GUILayout.Width(130f), GUILayout.Height(34f)) && TestScriptRequested != null)
+            {
+                TestScriptRequested(selectionReadResult.Snapshot);
+            }
+
             GUI.enabled = selectionReadResult != null && selectionReadResult.Snapshot != null && !string.IsNullOrEmpty(selectionReadResult.Snapshot.XmlText);
             if (GUILayout.Button(_localization.Get("button.copyXml"), GetButtonStyle(), GUILayout.Width(125f), GUILayout.Height(34f)) && CopyXmlRequested != null)
             {
@@ -206,6 +226,12 @@ namespace SimplePlanes2PartEditor
 
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
+        }
+
+        private string GetModificationRecorderButtonText()
+        {
+            bool isRecording = ModificationRecordingStateRequested != null && ModificationRecordingStateRequested();
+            return isRecording ? _localization.Get("button.stopRecorder") : _localization.Get("button.startRecorder");
         }
 
         private void DrawSettingsPage()
@@ -363,7 +389,7 @@ namespace SimplePlanes2PartEditor
 
             CloseExpandedEditorIfStale(snapshot);
             DrawPartInfo(snapshot);
-            GUILayout.Space(10f);
+            GUILayout.Space(8f);
 
             if (snapshot.Groups.Count == 0)
             {
@@ -418,7 +444,6 @@ namespace SimplePlanes2PartEditor
                 GUILayout.Label(_localization.Get("label.partId") + ": " + snapshot.PartId, GetLabelStyle());
                 GUILayout.Label(_localization.Get("label.partType") + ": " + snapshot.PartTypeName, GetLabelStyle());
                 GUILayout.Label(_localization.Get("label.partTypeId") + ": " + snapshot.PartTypeId, GetLabelStyle());
-                GUILayout.Label(_localization.Get("label.compatibility") + ": " + _localization.Get(snapshot.CompatibilityLabelKey), GetLabelStyle());
                 GUILayout.Label(_localization.Get("label.partDataType") + ": " + snapshot.PartDataTypeName, GetMutedLabelStyle());
                 GUILayout.Space(8f);
             }
@@ -608,7 +633,7 @@ namespace SimplePlanes2PartEditor
             GUI.enabled = member.CanWrite && member.IsDirty;
             if (GUILayout.Button(_localization.Get("button.apply"), GetButtonStyle(), GUILayout.Width(70f), GUILayout.Height(30f)))
             {
-                ApplyMemberValue(member);
+                ApplyMemberValue(snapshot, group, member);
             }
 
             GUI.enabled = member.CanWrite && member.IsDirty;
@@ -712,7 +737,7 @@ namespace SimplePlanes2PartEditor
             GUI.enabled = _expandedEditorMember.CanWrite && _expandedEditorMember.IsDirty;
             if (GUILayout.Button(_localization.Get("button.apply"), GetButtonStyle(), GUILayout.Width(110f), GUILayout.Height(32f)))
             {
-                ApplyMemberValue(_expandedEditorMember);
+                ApplyMemberValue(_expandedEditorSnapshot, _expandedEditorGroup, _expandedEditorMember);
             }
 
             if (GUILayout.Button(_localization.Get("button.reset"), GetButtonStyle(), GUILayout.Width(110f), GUILayout.Height(32f)))
@@ -731,21 +756,59 @@ namespace SimplePlanes2PartEditor
             GUILayout.EndArea();
         }
 
-        private void ApplyMemberValue(InspectableMember member)
+        private void ApplyMemberValue(SelectedPartSnapshot snapshot, InspectableGroup group, InspectableMember member)
         {
+            string beforeValue = member == null ? string.Empty : member.Value;
+            string requestedValue = member == null ? string.Empty : member.EditorValue;
+            bool refreshSucceeded = false;
+
             if (member.TryApply())
             {
                 if (MemberApplied != null)
                 {
-                    MemberApplied(member);
+                    refreshSucceeded = MemberApplied(member);
                 }
 
+                RecordModification("apply", snapshot, group, member, beforeValue, requestedValue, member.Value, true, refreshSucceeded, string.Empty);
                 RaiseStatus(_localization.Get("status.applied") + ": " + member.Name);
             }
             else
             {
+                RecordModification("apply", snapshot, group, member, beforeValue, requestedValue, member.Value, false, false, member.Error);
                 RaiseStatus(_localization.Get("status.applyFailed") + ": " + member.Name);
             }
+        }
+
+        private void RecordModification(
+            string operationName,
+            SelectedPartSnapshot snapshot,
+            InspectableGroup group,
+            InspectableMember member,
+            string beforeValue,
+            string requestedValue,
+            string afterValue,
+            bool applySucceeded,
+            bool refreshSucceeded,
+            string error)
+        {
+            if (ModificationRecorded == null)
+            {
+                return;
+            }
+
+            ModificationRecorded(new ModificationRecordRequest
+            {
+                OperationName = operationName,
+                Snapshot = snapshot,
+                Group = group,
+                Member = member,
+                BeforeValue = beforeValue,
+                RequestedValue = requestedValue,
+                AfterValue = afterValue,
+                ApplySucceeded = applySucceeded,
+                RefreshSucceeded = refreshSucceeded,
+                Error = error
+            });
         }
 
         private void DrawExpandedEditorChrome()
@@ -1139,6 +1202,20 @@ namespace SimplePlanes2PartEditor
 
             _mutedLabelStyle.fontSize = _settings.FontSize;
             return _mutedLabelStyle;
+        }
+
+        private GUIStyle GetWarningLabelStyle()
+        {
+            if (_warningLabelStyle == null)
+            {
+                _warningLabelStyle = new GUIStyle(GUI.skin.label);
+                _warningLabelStyle.normal.textColor = new Color(1f, 0.55f, 0.38f, 1f);
+                _warningLabelStyle.fontStyle = FontStyle.Bold;
+                _warningLabelStyle.padding = new RectOffset(8, 8, 5, 5);
+            }
+
+            _warningLabelStyle.fontSize = _settings.FontSize;
+            return _warningLabelStyle;
         }
 
         private GUIStyle GetHeaderLabelStyle()

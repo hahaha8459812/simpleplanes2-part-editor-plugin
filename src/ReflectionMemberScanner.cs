@@ -66,6 +66,7 @@ namespace SimplePlanes2PartEditor
             {
                 object value;
                 FieldInfo backingField;
+                string attributes;
                 if (!CanReadProperty(property) || !IsDisplayableType(property.PropertyType) || !seenNames.Add("P:" + property.Name))
                 {
                     continue;
@@ -73,6 +74,7 @@ namespace SimplePlanes2PartEditor
 
                 backingField = FindBackingField(target.GetType(), property.Name);
                 value = TryGetValue(() => property.GetValue(target, null));
+                attributes = GetAttributeNames(property);
                 members.Add(new InspectableMember(
                     target,
                     property,
@@ -81,7 +83,7 @@ namespace SimplePlanes2PartEditor
                     GetFriendlyTypeName(property.PropertyType),
                     GetPropertyAccess(property, backingField),
                     ValueFormatter.FormatValue(value, property.PropertyType),
-                    GetAttributeNames(property)));
+                    attributes));
             }
         }
 
@@ -93,12 +95,14 @@ namespace SimplePlanes2PartEditor
             foreach (FieldInfo field in fields)
             {
                 object value;
+                string attributes;
                 if (ShouldSkipField(field, showRuntimeCacheMembers) || field.IsStatic || !IsDisplayableType(field.FieldType) || !seenNames.Add("F:" + field.Name))
                 {
                     continue;
                 }
 
                 value = TryGetValue(() => field.GetValue(target));
+                attributes = GetAttributeNames(field);
                 members.Add(new InspectableMember(
                     target,
                     field,
@@ -106,7 +110,7 @@ namespace SimplePlanes2PartEditor
                     GetFriendlyTypeName(field.FieldType),
                     field.IsPublic ? "public field" : "private field",
                     ValueFormatter.FormatValue(value, field.FieldType),
-                    GetAttributeNames(field)));
+                    attributes));
             }
         }
 
@@ -241,5 +245,6 @@ namespace SimplePlanes2PartEditor
 
             return names.Count == 0 ? string.Empty : string.Join(", ", names.ToArray());
         }
+
     }
 }
