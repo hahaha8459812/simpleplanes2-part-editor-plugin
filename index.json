@@ -1,4 +1,4 @@
 {
-  "version": "0.3.4",
-  "releaseNotes": "Apply now notifies SP2 runtime refresh hooks, recalculates loaded mass, and marks designer structure changes. Runtime cache fields are hidden by default with a settings toggle. Update notices also appear in the panel title. Release packages now include BepInEx 5 Mono x64 so users do not need a separate BepInEx download."
+  "version": "0.3.5",
+  "releaseNotes": "Refined the editor panel visuals to reduce button and table clutter. PartData apply now refreshes designer runtime state, so common editable properties such as Health, Position, Rotation, mass-related values, and PartScale for non-uniform part scaling can take effect in real time."
 }

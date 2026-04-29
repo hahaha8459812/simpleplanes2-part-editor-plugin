@@ -55,8 +55,12 @@ namespace SimplePlanes2PartEditor
         private GUIStyle _textAreaStyle;
         private GUIStyle _readOnlyValueStyle;
         private GUIStyle _buttonStyle;
+        private GUIStyle _secondaryButtonStyle;
+        private GUIStyle _groupButtonStyle;
+        private GUIStyle _selectedGroupButtonStyle;
         private GUIStyle _sectionStyle;
         private GUIStyle _columnHeaderStyle;
+        private GUIStyle _columnHeaderRowStyle;
         private GUIStyle _rowStyle;
         private GUIStyle _rowAltStyle;
 
@@ -66,6 +70,11 @@ namespace SimplePlanes2PartEditor
         private Texture2D _buttonBackgroundTexture;
         private Texture2D _buttonHoverTexture;
         private Texture2D _buttonActiveTexture;
+        private Texture2D _secondaryButtonBackgroundTexture;
+        private Texture2D _secondaryButtonHoverTexture;
+        private Texture2D _secondaryButtonActiveTexture;
+        private Texture2D _selectedGroupButtonBackgroundTexture;
+        private Texture2D _columnHeaderBackgroundTexture;
         private Texture2D _rowBackgroundTexture;
         private Texture2D _rowAltBackgroundTexture;
 
@@ -187,13 +196,13 @@ namespace SimplePlanes2PartEditor
                 RefreshRequested();
             }
 
-            if (GUILayout.Button(_localization.Get("button.settings"), GetButtonStyle(), GUILayout.Width(110f), GUILayout.Height(34f)))
+            if (GUILayout.Button(_localization.Get("button.settings"), GetSecondaryButtonStyle(), GUILayout.Width(110f), GUILayout.Height(34f)))
             {
                 _showSettings = !_showSettings;
                 LoadSettingsText();
             }
 
-            if (GUILayout.Button(_localization.Get("button.language") + ": " + _localization.Language, GetButtonStyle(), GUILayout.Width(190f), GUILayout.Height(34f)) && LanguageToggleRequested != null)
+            if (GUILayout.Button(_localization.Get("button.language") + ": " + _localization.Language, GetSecondaryButtonStyle(), GUILayout.Width(190f), GUILayout.Height(34f)) && LanguageToggleRequested != null)
             {
                 LanguageToggleRequested();
             }
@@ -236,7 +245,7 @@ namespace SimplePlanes2PartEditor
                 ApplySettingsPage();
             }
 
-            if (GUILayout.Button(_localization.Get("button.resetSettings"), GetButtonStyle(), GUILayout.Width(150f), GUILayout.Height(34f)))
+            if (GUILayout.Button(_localization.Get("button.resetSettings"), GetSecondaryButtonStyle(), GUILayout.Width(150f), GUILayout.Height(34f)))
             {
                 _settings.SetUiLayout(18, 1320f, 860f, 0.96f);
                 _settings.SetToggleWindowHotkey("F8");
@@ -404,7 +413,7 @@ namespace SimplePlanes2PartEditor
         {
             GUILayout.BeginVertical(GetSectionStyle());
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button((_partInfoExpanded ? "▼ " : "▶ ") + _localization.Get("section.partInfo"), GetButtonStyle(), GUILayout.Width(190f), GUILayout.Height(30f)))
+            if (GUILayout.Button((_partInfoExpanded ? "▼ " : "▶ ") + _localization.Get("section.partInfo"), GetSecondaryButtonStyle(), GUILayout.Width(190f), GUILayout.Height(30f)))
             {
                 _partInfoExpanded = !_partInfoExpanded;
             }
@@ -449,7 +458,7 @@ namespace SimplePlanes2PartEditor
                 InspectableGroup group = snapshot.Groups[index];
                 bool selected = index == _selectedGroupIndex;
                 string label = selected ? "● " + group.Title : "○ " + group.Title;
-                if (GUILayout.Button(label, GetButtonStyle(), GUILayout.Height(30f)))
+                if (GUILayout.Button(label, selected ? GetSelectedGroupButtonStyle() : GetGroupButtonStyle(), GUILayout.Height(30f)))
                 {
                     _selectedGroupIndex = index;
                     _scrollPosition.y = 0f;
@@ -504,7 +513,7 @@ namespace SimplePlanes2PartEditor
                     GUILayout.BeginHorizontal(_alternateRow ? GetRowAltStyle() : GetRowStyle(), GUILayout.MinHeight(30f));
                     GUILayout.Label(attribute.Name, GetLabelStyle(), GUILayout.Width(220f));
                     GUILayout.Label(attribute.Value, GetReadOnlyValueStyle(), GUILayout.Width(520f));
-                    if (GUILayout.Button(_localization.Get("customXml.remove"), GetButtonStyle(), GUILayout.Width(110f), GUILayout.Height(28f)))
+                    if (GUILayout.Button(_localization.Get("customXml.remove"), GetSecondaryButtonStyle(), GUILayout.Width(110f), GUILayout.Height(28f)))
                     {
                         CustomXmlAttributeStore.RemoveAttribute(group.TargetObject, attribute.Name);
                         RaiseStatus(_localization.Get("customXml.removed"));
@@ -563,7 +572,7 @@ namespace SimplePlanes2PartEditor
 
         private void DrawHeaderRow()
         {
-            GUILayout.BeginHorizontal();
+            GUILayout.BeginHorizontal(GetColumnHeaderRowStyle(), GUILayout.MinHeight(30f));
             GUILayout.Label(_localization.Get("column.name"), GetColumnHeaderStyle(), GUILayout.Width(GetNameColumnWidth()));
             if (_settings.ShowTypeColumn)
             {
@@ -580,7 +589,7 @@ namespace SimplePlanes2PartEditor
 
         private void DrawMemberRow(SelectedPartSnapshot snapshot, InspectableGroup group, InspectableMember member)
         {
-            GUILayout.BeginHorizontal(_alternateRow ? GetRowAltStyle() : GetRowStyle(), GUILayout.MinHeight(34f));
+            GUILayout.BeginHorizontal(_alternateRow ? GetRowAltStyle() : GetRowStyle(), GUILayout.MinHeight(36f));
             GUILayout.Label(member.Name, GetLabelStyle(), GUILayout.Width(GetNameColumnWidth()));
             if (_settings.ShowTypeColumn)
             {
@@ -600,7 +609,7 @@ namespace SimplePlanes2PartEditor
             }
 
             GUI.enabled = member.CanWrite;
-            if (GUILayout.Button(_localization.Get("button.expandEditor"), GetButtonStyle(), GUILayout.Width(70f), GUILayout.Height(30f)))
+            if (GUILayout.Button(_localization.Get("button.expandEditor"), GetSecondaryButtonStyle(), GUILayout.Width(70f), GUILayout.Height(30f)))
             {
                 OpenExpandedEditor(snapshot, group, member);
             }
@@ -612,7 +621,7 @@ namespace SimplePlanes2PartEditor
             }
 
             GUI.enabled = member.CanWrite && member.IsDirty;
-            if (GUILayout.Button(_localization.Get("button.reset"), GetButtonStyle(), GUILayout.Width(70f), GUILayout.Height(30f)))
+            if (GUILayout.Button(_localization.Get("button.reset"), GetSecondaryButtonStyle(), GUILayout.Width(70f), GUILayout.Height(30f)))
             {
                 member.ResetEditorValue();
             }
@@ -715,14 +724,14 @@ namespace SimplePlanes2PartEditor
                 ApplyMemberValue(_expandedEditorSnapshot, _expandedEditorGroup, _expandedEditorMember);
             }
 
-            if (GUILayout.Button(_localization.Get("button.reset"), GetButtonStyle(), GUILayout.Width(110f), GUILayout.Height(32f)))
+            if (GUILayout.Button(_localization.Get("button.reset"), GetSecondaryButtonStyle(), GUILayout.Width(110f), GUILayout.Height(32f)))
             {
                 _expandedEditorMember.ResetEditorValue();
             }
             GUI.enabled = true;
 
             GUILayout.FlexibleSpace();
-            if (GUILayout.Button(_localization.Get("button.close"), GetButtonStyle(), GUILayout.Width(110f), GUILayout.Height(32f)))
+            if (GUILayout.Button(_localization.Get("button.close"), GetSecondaryButtonStyle(), GUILayout.Width(110f), GUILayout.Height(32f)))
             {
                 CloseExpandedEditor();
             }
@@ -1079,10 +1088,12 @@ namespace SimplePlanes2PartEditor
             }
 
             DrawRect(shadowRect, new Color(0f, 0f, 0f, 0.28f));
-            DrawRect(_windowRect, new Color(0.035f, 0.045f, 0.06f, _settings.BackgroundOpacity));
-            DrawRect(new Rect(_windowRect.x, _windowRect.y, _windowRect.width, 42f), new Color(0.02f, 0.08f, 0.18f, 1f));
-            DrawRect(new Rect(_windowRect.x, _windowRect.y + 42f, _windowRect.width, 4f), new Color(0.08f, 0.42f, 1f, 1f));
-            DrawBorder(_windowRect, new Color(0.2f, 0.38f, 0.7f, 1f));
+            DrawRect(_windowRect, new Color(0.025f, 0.032f, 0.044f, _settings.BackgroundOpacity));
+            DrawRect(new Rect(_windowRect.x + 10f, _windowRect.y + 46f, _windowRect.width - 20f, _windowRect.height - 56f), new Color(0.045f, 0.055f, 0.074f, 0.94f));
+            DrawRect(new Rect(_windowRect.x, _windowRect.y, _windowRect.width, 42f), new Color(0.018f, 0.055f, 0.105f, 1f));
+            DrawRect(new Rect(_windowRect.x, _windowRect.y + 42f, _windowRect.width, 3f), new Color(0.16f, 0.35f, 0.62f, 1f));
+            DrawBorder(_windowRect, new Color(0.16f, 0.29f, 0.48f, 1f));
+            DrawBorder(new Rect(_windowRect.x + 10f, _windowRect.y + 46f, _windowRect.width - 20f, _windowRect.height - 56f), new Color(0.085f, 0.14f, 0.22f, 1f));
 
             GUI.Label(new Rect(_windowRect.x + 20f, _windowRect.y + 7f, _windowRect.width - 300f, 28f), title, GetHeaderLabelStyle());
             GUI.Label(new Rect(_windowRect.x + _windowRect.width - 260f, _windowRect.y + 8f, 240f, 24f), _localization.Get("label.hotkey"), GetHeaderLabelRightStyle());
@@ -1192,10 +1203,23 @@ namespace SimplePlanes2PartEditor
                 _columnHeaderStyle = new GUIStyle(GUI.skin.label);
                 _columnHeaderStyle.normal.textColor = new Color(0.8f, 0.9f, 1f, 1f);
                 _columnHeaderStyle.fontStyle = FontStyle.Bold;
+                _columnHeaderStyle.padding = new RectOffset(8, 8, 6, 5);
             }
 
             _columnHeaderStyle.fontSize = _settings.FontSize;
             return _columnHeaderStyle;
+        }
+
+        private GUIStyle GetColumnHeaderRowStyle()
+        {
+            if (_columnHeaderRowStyle == null)
+            {
+                _columnHeaderRowStyle = new GUIStyle();
+                _columnHeaderRowStyle.normal.background = GetColumnHeaderBackgroundTexture();
+                _columnHeaderRowStyle.padding = new RectOffset(0, 0, 1, 1);
+            }
+
+            return _columnHeaderRowStyle;
         }
 
         private GUIStyle GetTextFieldStyle()
@@ -1211,7 +1235,7 @@ namespace SimplePlanes2PartEditor
                 _textFieldStyle.hover.textColor = Color.white;
                 _textFieldStyle.active.textColor = Color.white;
                 _textFieldStyle.focused.textColor = Color.white;
-                _textFieldStyle.padding = new RectOffset(9, 9, 5, 5);
+                _textFieldStyle.padding = new RectOffset(10, 10, 5, 5);
             }
 
             _textFieldStyle.fontSize = _settings.FontSize;
@@ -1258,7 +1282,7 @@ namespace SimplePlanes2PartEditor
             {
                 _readOnlyValueStyle = new GUIStyle(GUI.skin.label);
                 _readOnlyValueStyle.normal.textColor = new Color(0.9f, 0.95f, 1f, 1f);
-                _readOnlyValueStyle.padding = new RectOffset(8, 8, 5, 5);
+                _readOnlyValueStyle.padding = new RectOffset(10, 8, 6, 5);
             }
 
             _readOnlyValueStyle.fontSize = _settings.FontSize;
@@ -1285,13 +1309,65 @@ namespace SimplePlanes2PartEditor
             return _buttonStyle;
         }
 
+        private GUIStyle GetSecondaryButtonStyle()
+        {
+            if (_secondaryButtonStyle == null)
+            {
+                _secondaryButtonStyle = new GUIStyle(GUI.skin.button);
+                _secondaryButtonStyle.normal.background = GetSecondaryButtonBackgroundTexture();
+                _secondaryButtonStyle.hover.background = GetSecondaryButtonHoverTexture();
+                _secondaryButtonStyle.active.background = GetSecondaryButtonActiveTexture();
+                _secondaryButtonStyle.focused.background = GetSecondaryButtonBackgroundTexture();
+                _secondaryButtonStyle.normal.textColor = new Color(0.88f, 0.94f, 1f, 1f);
+                _secondaryButtonStyle.hover.textColor = Color.white;
+                _secondaryButtonStyle.active.textColor = Color.white;
+                _secondaryButtonStyle.focused.textColor = new Color(0.88f, 0.94f, 1f, 1f);
+                _secondaryButtonStyle.fontStyle = FontStyle.Bold;
+            }
+
+            _secondaryButtonStyle.fontSize = _settings.FontSize;
+            return _secondaryButtonStyle;
+        }
+
+        private GUIStyle GetGroupButtonStyle()
+        {
+            if (_groupButtonStyle == null)
+            {
+                _groupButtonStyle = new GUIStyle(GetSecondaryButtonStyle());
+                _groupButtonStyle.alignment = TextAnchor.MiddleLeft;
+                _groupButtonStyle.padding = new RectOffset(14, 10, 5, 5);
+            }
+
+            _groupButtonStyle.fontSize = _settings.FontSize;
+            return _groupButtonStyle;
+        }
+
+        private GUIStyle GetSelectedGroupButtonStyle()
+        {
+            if (_selectedGroupButtonStyle == null)
+            {
+                _selectedGroupButtonStyle = new GUIStyle(GetGroupButtonStyle());
+                _selectedGroupButtonStyle.normal.background = GetSelectedGroupButtonBackgroundTexture();
+                _selectedGroupButtonStyle.hover.background = GetButtonBackgroundTexture();
+                _selectedGroupButtonStyle.active.background = GetButtonActiveTexture();
+                _selectedGroupButtonStyle.focused.background = GetSelectedGroupButtonBackgroundTexture();
+                _selectedGroupButtonStyle.normal.textColor = Color.white;
+                _selectedGroupButtonStyle.hover.textColor = Color.white;
+                _selectedGroupButtonStyle.active.textColor = Color.white;
+                _selectedGroupButtonStyle.focused.textColor = Color.white;
+            }
+
+            _selectedGroupButtonStyle.fontSize = _settings.FontSize;
+            return _selectedGroupButtonStyle;
+        }
+
         private GUIStyle GetRowStyle()
         {
             if (_rowStyle == null)
             {
                 _rowStyle = new GUIStyle();
                 _rowStyle.normal.background = GetRowBackgroundTexture();
-                _rowStyle.padding = new RectOffset(8, 8, 3, 3);
+                _rowStyle.padding = new RectOffset(8, 8, 4, 4);
             }
 
             return _rowStyle;
@@ -1303,7 +1379,7 @@ namespace SimplePlanes2PartEditor
             {
                 _rowAltStyle = new GUIStyle();
                 _rowAltStyle.normal.background = GetRowAltBackgroundTexture();
-                _rowAltStyle.padding = new RectOffset(8, 8, 3, 3);
+                _rowAltStyle.padding = new RectOffset(8, 8, 4, 4);
             }
 
             return _rowAltStyle;
@@ -1329,7 +1405,7 @@ namespace SimplePlanes2PartEditor
         {
             if (_sectionBackgroundTexture == null)
             {
-                _sectionBackgroundTexture = CreateSolidTexture(new Color(0.07f, 0.09f, 0.125f, 1f));
+                _sectionBackgroundTexture = CreateSolidTexture(new Color(0.06f, 0.074f, 0.1f, 1f));
             }
 
             return _sectionBackgroundTexture;
@@ -1339,7 +1415,7 @@ namespace SimplePlanes2PartEditor
         {
             if (_textFieldBackgroundTexture == null)
             {
-                _textFieldBackgroundTexture = CreateSolidTexture(new Color(0.015f, 0.025f, 0.04f, 1f));
+                _textFieldBackgroundTexture = CreateSolidTexture(new Color(0.012f, 0.018f, 0.03f, 1f));
             }
 
             return _textFieldBackgroundTexture;
@@ -1375,11 +1451,61 @@ namespace SimplePlanes2PartEditor
             return _buttonActiveTexture;
         }
 
+        private Texture2D GetSecondaryButtonBackgroundTexture()
+        {
+            if (_secondaryButtonBackgroundTexture == null)
+            {
+                _secondaryButtonBackgroundTexture = CreateSolidTexture(new Color(0.09f, 0.13f, 0.19f, 1f));
+            }
+
+            return _secondaryButtonBackgroundTexture;
+        }
+
+        private Texture2D GetSecondaryButtonHoverTexture()
+        {
+            if (_secondaryButtonHoverTexture == null)
+            {
+                _secondaryButtonHoverTexture = CreateSolidTexture(new Color(0.13f, 0.2f, 0.3f, 1f));
+            }
+
+            return _secondaryButtonHoverTexture;
+        }
+
+        private Texture2D GetSecondaryButtonActiveTexture()
+        {
+            if (_secondaryButtonActiveTexture == null)
+            {
+                _secondaryButtonActiveTexture = CreateSolidTexture(new Color(0.07f, 0.11f, 0.17f, 1f));
+            }
+
+            return _secondaryButtonActiveTexture;
+        }
+
+        private Texture2D GetSelectedGroupButtonBackgroundTexture()
+        {
+            if (_selectedGroupButtonBackgroundTexture == null)
+            {
+                _selectedGroupButtonBackgroundTexture = CreateSolidTexture(new Color(0.09f, 0.32f, 0.68f, 1f));
+            }
+
+            return _selectedGroupButtonBackgroundTexture;
+        }
+
+        private Texture2D GetColumnHeaderBackgroundTexture()
+        {
+            if (_columnHeaderBackgroundTexture == null)
+            {
+                _columnHeaderBackgroundTexture = CreateSolidTexture(new Color(0.034f, 0.055f, 0.088f, 1f));
+            }
+
+            return _columnHeaderBackgroundTexture;
+        }
+
         private Texture2D GetRowBackgroundTexture()
         {
             if (_rowBackgroundTexture == null)
             {
-                _rowBackgroundTexture = CreateSolidTexture(new Color(0.085f, 0.105f, 0.145f, 1f));
+                _rowBackgroundTexture = CreateSolidTexture(new Color(0.072f, 0.088f, 0.12f, 1f));
             }
 
             return _rowBackgroundTexture;
@@ -1389,7 +1515,7 @@ namespace SimplePlanes2PartEditor
         {
             if (_rowAltBackgroundTexture == null)
             {
-                _rowAltBackgroundTexture = CreateSolidTexture(new Color(0.055f, 0.073f, 0.105f, 1f));
+                _rowAltBackgroundTexture = CreateSolidTexture(new Color(0.052f, 0.066f, 0.092f, 1f));
             }
 
             return _rowAltBackgroundTexture;
