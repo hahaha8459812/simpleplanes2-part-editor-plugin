@@ -418,7 +418,6 @@ namespace SimplePlanes2PartEditor
                 GUILayout.Label(_localization.Get("label.partId") + ": " + snapshot.PartId, GetLabelStyle());
                 GUILayout.Label(_localization.Get("label.partType") + ": " + snapshot.PartTypeName, GetLabelStyle());
                 GUILayout.Label(_localization.Get("label.partTypeId") + ": " + snapshot.PartTypeId, GetLabelStyle());
-                GUILayout.Label(_localization.Get("label.compatibility") + ": " + _localization.Get(snapshot.CompatibilityLabelKey), GetLabelStyle());
                 GUILayout.Label(_localization.Get("label.partDataType") + ": " + snapshot.PartDataTypeName, GetMutedLabelStyle());
                 GUILayout.Space(8f);
             }

@@ -11,69 +11,6 @@ namespace SimplePlanes2PartEditor
     {
         private const string DesignerTypeName = "Assets.Scripts.Design.Designer";
         private const float DesignerResolveRetryDelaySeconds = 2f;
-        private static readonly string[] LegacyPartTypePrefixes =
-        {
-            "AirBrake-",
-            "ArrestingHook-",
-            "BeaconLight-",
-            "Block-",
-            "Bomb-",
-            "Button-",
-            "Camera-",
-            "Cannon-",
-            "Car-",
-            "CatapultConnector-",
-            "Cockpit-",
-            "Control-",
-            "ControlBase-",
-            "Countermeasure-",
-            "Detacher-",
-            "Engine-",
-            "FlightComputer-",
-            "FormationLight-",
-            "FuelTank-",
-            "Fuselage-",
-            "Gauge-",
-            "Grip-",
-            "Gun-",
-            "Gyroscope-",
-            "HeliRotor-",
-            "HeliTailRotor-",
-            "Hemisphere-",
-            "HingeRotator-",
-            "Inlet-",
-            "JointRotator-",
-            "Label-",
-            "Magnet-",
-            "Missile-",
-            "NoseCone-",
-            "Parachute-",
-            "Piston-",
-            "Pylon-",
-            "ReactionControlNozzle-",
-            "Refuel-",
-            "Rocket-",
-            "RocketPod-",
-            "Seat-",
-            "Shock-",
-            "SmallRotator-",
-            "Switch-",
-            "ThrustPort-",
-            "Wheel-",
-            "Winch-",
-            "Wing-"
-        };
-
-        private static readonly string[] LegacyModifierTypeNames =
-        {
-            "EngineData",
-            "FloatingPartData",
-            "FuelTankData",
-            "FuselageData",
-            "WheelData",
-            "WingData"
-        };
-
         private readonly ReflectionMemberScanner _memberScanner;
         private Type _designerType;
         private PropertyInfo _designerInstanceProperty;
@@ -179,7 +116,6 @@ namespace SimplePlanes2PartEditor
                 partId,
                 partTypeName,
                 partTypeId,
-                GetCompatibilityLabelKey(partTypeId, modifiers),
                 partData.GetType().FullName,
                 partData,
                 xmlText,
@@ -255,77 +191,6 @@ namespace SimplePlanes2PartEditor
 
             id = ConvertToString(GetInstanceMemberValue(partType, "PartTypeId"));
             return string.IsNullOrEmpty(id) ? GetPartTypeName(partType) : id;
-        }
-
-        private static string GetCompatibilityLabelKey(string partTypeId, object modifiers)
-        {
-            if (IsLegacyPartTypeId(partTypeId) || HasLegacyModifier(modifiers))
-            {
-                return "compatibility.legacySp1";
-            }
-
-            return "compatibility.sp2";
-        }
-
-        private static bool IsLegacyPartTypeId(string partTypeId)
-        {
-            int prefixIndex;
-
-            if (string.IsNullOrEmpty(partTypeId))
-            {
-                return false;
-            }
-
-            for (prefixIndex = 0; prefixIndex < LegacyPartTypePrefixes.Length; prefixIndex++)
-            {
-                if (partTypeId.StartsWith(LegacyPartTypePrefixes[prefixIndex], StringComparison.Ordinal))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static bool HasLegacyModifier(object modifiers)
-        {
-            IEnumerable enumerable = modifiers as IEnumerable;
-
-            if (enumerable == null)
-            {
-                return false;
-            }
-
-            foreach (object modifier in enumerable)
-            {
-                string typeName = modifier == null ? string.Empty : modifier.GetType().Name;
-                if (IsLegacyModifierTypeName(typeName))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static bool IsLegacyModifierTypeName(string typeName)
-        {
-            int typeIndex;
-
-            if (string.IsNullOrEmpty(typeName))
-            {
-                return false;
-            }
-
-            for (typeIndex = 0; typeIndex < LegacyModifierTypeNames.Length; typeIndex++)
-            {
-                if (typeName == LegacyModifierTypeNames[typeIndex])
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         private static string GenerateXmlText(object partData)
