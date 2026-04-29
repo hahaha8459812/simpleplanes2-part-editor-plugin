@@ -267,6 +267,8 @@ namespace SimplePlanes2PartEditor
             {
                 _partRuntimeRefreshService.TryRefreshAfterApply(member);
             }
+
+            RefreshSelection();
         }
 
         private void SaveSettings()
