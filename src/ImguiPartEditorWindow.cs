@@ -48,6 +48,7 @@ namespace SimplePlanes2PartEditor
         private GUIStyle _titleStyle;
         private GUIStyle _labelStyle;
         private GUIStyle _mutedLabelStyle;
+        private GUIStyle _warningLabelStyle;
         private GUIStyle _headerLabelStyle;
         private GUIStyle _headerLabelRightStyle;
         private GUIStyle _textFieldStyle;
@@ -363,7 +364,7 @@ namespace SimplePlanes2PartEditor
 
             CloseExpandedEditorIfStale(snapshot);
             DrawPartInfo(snapshot);
-            GUILayout.Space(10f);
+            GUILayout.Space(8f);
 
             if (snapshot.Groups.Count == 0)
             {
@@ -607,7 +608,7 @@ namespace SimplePlanes2PartEditor
             GUI.enabled = member.CanWrite && member.IsDirty;
             if (GUILayout.Button(_localization.Get("button.apply"), GetButtonStyle(), GUILayout.Width(70f), GUILayout.Height(30f)))
             {
-                ApplyMemberValue(member);
+                ApplyMemberValue(snapshot, group, member);
             }
 
             GUI.enabled = member.CanWrite && member.IsDirty;
@@ -711,7 +712,7 @@ namespace SimplePlanes2PartEditor
             GUI.enabled = _expandedEditorMember.CanWrite && _expandedEditorMember.IsDirty;
             if (GUILayout.Button(_localization.Get("button.apply"), GetButtonStyle(), GUILayout.Width(110f), GUILayout.Height(32f)))
             {
-                ApplyMemberValue(_expandedEditorMember);
+                ApplyMemberValue(_expandedEditorSnapshot, _expandedEditorGroup, _expandedEditorMember);
             }
 
             if (GUILayout.Button(_localization.Get("button.reset"), GetButtonStyle(), GUILayout.Width(110f), GUILayout.Height(32f)))
@@ -730,7 +731,7 @@ namespace SimplePlanes2PartEditor
             GUILayout.EndArea();
         }
 
-        private void ApplyMemberValue(InspectableMember member)
+        private void ApplyMemberValue(SelectedPartSnapshot snapshot, InspectableGroup group, InspectableMember member)
         {
             if (member.TryApply())
             {
@@ -1138,6 +1139,20 @@ namespace SimplePlanes2PartEditor
 
             _mutedLabelStyle.fontSize = _settings.FontSize;
             return _mutedLabelStyle;
+        }
+
+        private GUIStyle GetWarningLabelStyle()
+        {
+            if (_warningLabelStyle == null)
+            {
+                _warningLabelStyle = new GUIStyle(GUI.skin.label);
+                _warningLabelStyle.normal.textColor = new Color(1f, 0.55f, 0.38f, 1f);
+                _warningLabelStyle.fontStyle = FontStyle.Bold;
+                _warningLabelStyle.padding = new RectOffset(8, 8, 5, 5);
+            }
+
+            _warningLabelStyle.fontSize = _settings.FontSize;
+            return _warningLabelStyle;
         }
 
         private GUIStyle GetHeaderLabelStyle()
