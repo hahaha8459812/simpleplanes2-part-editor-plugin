@@ -59,11 +59,6 @@ namespace SimplePlanes2PartEditor
 
         public bool CanWrite { get; private set; }
 
-        public Type ValueType
-        {
-            get { return _valueType; }
-        }
-
         public object TargetObject
         {
             get { return _target; }

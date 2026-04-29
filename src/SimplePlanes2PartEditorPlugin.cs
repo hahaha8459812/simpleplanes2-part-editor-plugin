@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections;
-using System.Globalization;
 using System.IO;
 using BepInEx;
 using HarmonyLib;
@@ -22,7 +20,6 @@ namespace SimplePlanes2PartEditor
         private DesignerSelectionService _selectionService;
         private ReflectionMemberScanner _memberScanner;
         private PartRuntimeRefreshService _partRuntimeRefreshService;
-        private ModificationRecordService _modificationRecordService;
         private UpdateCheckService _updateCheckService;
         private ImguiPartEditorWindow _window;
         private SelectionReadResult _currentSelection;
@@ -124,17 +121,12 @@ namespace SimplePlanes2PartEditor
             _memberScanner = new ReflectionMemberScanner(_settings.MaxMembersPerGroup, _settings.ShowRuntimeCacheMembers);
             _selectionService = new DesignerSelectionService(_memberScanner);
             _partRuntimeRefreshService = new PartRuntimeRefreshService();
-            _modificationRecordService = new ModificationRecordService(Logger, _pluginRootPath);
             _updateCheckService = new UpdateCheckService();
             _window = new ImguiPartEditorWindow(_localization, _settings)
             {
                 RefreshRequested = RefreshSelection,
                 LanguageToggleRequested = ToggleLanguage,
                 CopyXmlRequested = CopyCurrentPartXml,
-                ModificationRecordingToggleRequested = ToggleModificationRecording,
-                ModificationRecordingStateRequested = IsModificationRecordingEnabled,
-                TestScriptRequested = RunPartDataTestScript,
-                ModificationRecorded = RecordModification,
                 StatusChanged = SetStatusText,
                 MemberApplied = RefreshPartRuntimeStateAfterApply,
                 SettingsSaveRequested = SaveSettings
@@ -269,17 +261,14 @@ namespace SimplePlanes2PartEditor
             _statusText = statusText;
         }
 
-        private bool RefreshPartRuntimeStateAfterApply(InspectableMember member)
+        private void RefreshPartRuntimeStateAfterApply(InspectableMember member)
         {
-            bool refreshed = false;
-
             if (_partRuntimeRefreshService != null)
             {
-                refreshed = _partRuntimeRefreshService.TryRefreshAfterApply(member);
+                _partRuntimeRefreshService.TryRefreshAfterApply(member);
             }
 
             RefreshSelection();
-            return refreshed;
         }
 
         private void SaveSettings()
@@ -294,455 +283,6 @@ namespace SimplePlanes2PartEditor
             _nextSelectionRefreshTime = 0f;
             ResetUpdateNotice();
             RefreshSelection();
-        }
-
-        private void ToggleModificationRecording()
-        {
-            if (_modificationRecordService == null)
-            {
-                return;
-            }
-
-            _modificationRecordService.Toggle();
-            _statusText = _modificationRecordService.IsRecording
-                ? _localization.Get("status.recorderStarted") + ": " + _modificationRecordService.RecordFilePath
-                : _localization.Get("status.recorderStopped") + ": " + _modificationRecordService.RecordFilePath;
-        }
-
-        private bool IsModificationRecordingEnabled()
-        {
-            return _modificationRecordService != null && _modificationRecordService.IsRecording;
-        }
-
-        private void RecordModification(ModificationRecordRequest request)
-        {
-            if (_modificationRecordService != null)
-            {
-                if (request != null && string.IsNullOrEmpty(request.RefreshMode))
-                {
-                    request.RefreshMode = GetRefreshModeName(request);
-                }
-
-                _modificationRecordService.Record(request);
-            }
-        }
-
-        private static string GetRefreshModeName(ModificationRecordRequest request)
-        {
-            if (request == null || request.Group == null)
-            {
-                return "Unknown";
-            }
-
-            if (request.Snapshot != null && ReferenceEquals(request.Group.TargetObject, request.Snapshot.PartDataObject))
-            {
-                return "PartDataFull";
-            }
-
-            return "ModifierLight";
-        }
-
-        private void RunPartDataTestScript(SelectedPartSnapshot snapshot)
-        {
-            InspectableGroup partDataGroup;
-            TestScriptSummary summary = new TestScriptSummary();
-
-            if (snapshot == null)
-            {
-                _statusText = _localization.Get("status.testScriptNoSelection");
-                return;
-            }
-
-            partDataGroup = GetPartDataGroup(snapshot);
-            if (partDataGroup == null)
-            {
-                _statusText = _localization.Get("status.testScriptNoPartData");
-                return;
-            }
-
-            EnsureModificationRecordingStarted();
-            RunInspectableGroupTests(snapshot, partDataGroup, summary);
-            RunModifierGroupTests(snapshot, summary);
-
-            RefreshSelection();
-            _statusText = _localization.Get("status.testScriptCompleted") + ": " +
-                          summary.PassedCount.ToString(CultureInfo.InvariantCulture) + "/" +
-                          summary.AttemptedCount.ToString(CultureInfo.InvariantCulture) +
-                          ", skipped " + summary.SkippedCount.ToString(CultureInfo.InvariantCulture);
-        }
-
-        private void EnsureModificationRecordingStarted()
-        {
-            if (_modificationRecordService != null && !_modificationRecordService.IsRecording)
-            {
-                _modificationRecordService.Start();
-            }
-        }
-
-        private void RunModifierGroupTests(SelectedPartSnapshot snapshot, TestScriptSummary summary)
-        {
-            foreach (InspectableGroup group in snapshot.Groups)
-            {
-                if (ReferenceEquals(group.TargetObject, snapshot.PartDataObject))
-                {
-                    continue;
-                }
-
-                RunInspectableGroupTests(snapshot, group, summary);
-            }
-        }
-
-        private void RunInspectableGroupTests(SelectedPartSnapshot snapshot, InspectableGroup group, TestScriptSummary summary)
-        {
-            foreach (InspectableMember member in group.Members)
-            {
-                if (!member.CanWrite)
-                {
-                    continue;
-                }
-
-                if (ShouldSkipTestMember(member))
-                {
-                    summary.SkippedCount++;
-                    RecordSkippedTest(snapshot, group, member, "protected identity member");
-                    continue;
-                }
-
-                summary.AttemptedCount++;
-                if (RunInspectableMemberTest(snapshot, group, member))
-                {
-                    summary.PassedCount++;
-                }
-            }
-        }
-
-        private bool RunInspectableMemberTest(SelectedPartSnapshot snapshot, InspectableGroup group, InspectableMember member)
-        {
-            string originalValue;
-            string testValue;
-            bool changed;
-            bool restored;
-
-            if (member == null)
-            {
-                return false;
-            }
-
-            originalValue = member.Value ?? string.Empty;
-            if (!TryCreateTestValue(member, originalValue, out testValue))
-            {
-                RecordSkippedTest(snapshot, group, member, "unsupported test value type");
-                return false;
-            }
-
-            changed = ApplyTestValue(snapshot, group, member, "test." + member.Name, originalValue, testValue);
-            restored = ApplyTestValue(snapshot, group, member, "restore." + member.Name, member.Value, originalValue);
-            return changed && restored;
-        }
-
-        private bool ApplyTestValue(SelectedPartSnapshot snapshot, InspectableGroup group, InspectableMember member, string operationName, string beforeValue, string value)
-        {
-            bool applySucceeded;
-            bool refreshSucceeded = false;
-            string error = string.Empty;
-
-            member.EditorValue = value;
-            applySucceeded = member.TryApply();
-            if (applySucceeded)
-            {
-                refreshSucceeded = _partRuntimeRefreshService != null && _partRuntimeRefreshService.TryRefreshAfterApply(member);
-            }
-            else
-            {
-                error = member.Error;
-            }
-
-            RecordModification(new ModificationRecordRequest
-            {
-                OperationName = operationName,
-                Snapshot = snapshot,
-                Group = group,
-                Member = member,
-                BeforeValue = beforeValue,
-                RequestedValue = value,
-                AfterValue = member.Value,
-                ApplySucceeded = applySucceeded,
-                RefreshSucceeded = refreshSucceeded,
-                Error = error
-            });
-
-            return applySucceeded && refreshSucceeded;
-        }
-
-        private void RecordSkippedTest(SelectedPartSnapshot snapshot, InspectableGroup group, InspectableMember member, string reason)
-        {
-            RecordModification(new ModificationRecordRequest
-            {
-                OperationName = member == null ? "skip" : "skip." + member.Name,
-                Snapshot = snapshot,
-                Group = group,
-                Member = member,
-                BeforeValue = member == null ? string.Empty : member.Value,
-                RequestedValue = member == null ? string.Empty : member.Value,
-                AfterValue = member == null ? string.Empty : member.Value,
-                ApplySucceeded = false,
-                RefreshSucceeded = false,
-                Error = reason
-            });
-        }
-
-        private static InspectableGroup GetPartDataGroup(SelectedPartSnapshot snapshot)
-        {
-            foreach (InspectableGroup group in snapshot.Groups)
-            {
-                if (ReferenceEquals(group.TargetObject, snapshot.PartDataObject))
-                {
-                    return group;
-                }
-            }
-
-            return null;
-        }
-
-        private static bool ShouldSkipTestMember(InspectableMember member)
-        {
-            string name;
-
-            if (member == null)
-            {
-                return true;
-            }
-
-            name = member.Name ?? string.Empty;
-            return string.Equals(name, "Id", StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(name, "PartType", StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(name, "PartTypeId", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static bool TryCreateTestValue(InspectableMember member, string originalValue, out string testValue)
-        {
-            Type valueType = Nullable.GetUnderlyingType(member.ValueType) ?? member.ValueType;
-
-            testValue = originalValue;
-            if (string.Equals(member.Name, "PartScale", StringComparison.Ordinal))
-            {
-                return TryCreatePartScaleTestValue(originalValue, out testValue);
-            }
-
-            if (valueType == typeof(string))
-            {
-                testValue = (originalValue ?? string.Empty) + "__sp2test";
-                return true;
-            }
-
-            if (valueType == typeof(bool))
-            {
-                testValue = string.Equals(originalValue, "true", StringComparison.OrdinalIgnoreCase) ? "false" : "true";
-                return true;
-            }
-
-            if (valueType.IsEnum)
-            {
-                return TryCreateEnumTestValue(valueType, originalValue, out testValue);
-            }
-
-            if (IsNumericType(valueType))
-            {
-                return TryCreateNumericTestValue(valueType, originalValue, out testValue);
-            }
-
-            if (valueType == typeof(Vector2))
-            {
-                return TryCreateVectorTestValue(originalValue, 2, out testValue);
-            }
-
-            if (valueType == typeof(Vector3))
-            {
-                return TryCreateVectorTestValue(originalValue, 3, out testValue);
-            }
-
-            if (valueType == typeof(Vector4) || valueType == typeof(Color))
-            {
-                return TryCreateVectorTestValue(originalValue, 4, out testValue);
-            }
-
-            if (valueType.IsArray)
-            {
-                return TryCreateCollectionTestValue(valueType.GetElementType(), originalValue, out testValue);
-            }
-
-            if (typeof(IList).IsAssignableFrom(valueType) && valueType.IsGenericType)
-            {
-                return TryCreateCollectionTestValue(valueType.GetGenericArguments()[0], originalValue, out testValue);
-            }
-
-            return false;
-        }
-
-        private static bool TryCreatePartScaleTestValue(string originalValue, out string testValue)
-        {
-            if (string.IsNullOrWhiteSpace(originalValue))
-            {
-                testValue = "1.05,1,1";
-                return true;
-            }
-
-            return TryCreateVectorTestValue(originalValue, 3, out testValue);
-        }
-
-        private static bool TryCreateEnumTestValue(Type enumType, string originalValue, out string testValue)
-        {
-            Array values = Enum.GetValues(enumType);
-            testValue = originalValue;
-
-            foreach (object enumValue in values)
-            {
-                string candidate = enumValue.ToString();
-                if (!string.Equals(candidate, originalValue, StringComparison.OrdinalIgnoreCase))
-                {
-                    testValue = candidate;
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static bool TryCreateNumericTestValue(Type valueType, string originalValue, out string testValue)
-        {
-            decimal number;
-
-            testValue = originalValue;
-            if (!decimal.TryParse(originalValue, NumberStyles.Float, CultureInfo.InvariantCulture, out number))
-            {
-                number = 0m;
-            }
-
-            if (valueType == typeof(byte) || valueType == typeof(sbyte) ||
-                valueType == typeof(short) || valueType == typeof(ushort) ||
-                valueType == typeof(int) || valueType == typeof(uint) ||
-                valueType == typeof(long) || valueType == typeof(ulong))
-            {
-                testValue = (number + 1m).ToString(CultureInfo.InvariantCulture);
-                return true;
-            }
-
-            testValue = (number + 0.125m).ToString(CultureInfo.InvariantCulture);
-            return true;
-        }
-
-        private static bool TryCreateVectorTestValue(string originalValue, int componentCount, out string testValue)
-        {
-            string[] components = SplitCsv(originalValue);
-            decimal firstComponent;
-
-            if (components.Length != componentCount)
-            {
-                components = CreateDefaultVectorComponents(componentCount);
-            }
-
-            if (!decimal.TryParse(components[0], NumberStyles.Float, CultureInfo.InvariantCulture, out firstComponent))
-            {
-                firstComponent = 1m;
-            }
-
-            components[0] = (firstComponent + 0.05m).ToString(CultureInfo.InvariantCulture);
-            testValue = string.Join(",", components);
-            return true;
-        }
-
-        private static bool TryCreateCollectionTestValue(Type elementType, string originalValue, out string testValue)
-        {
-            string[] values = SplitCsv(originalValue);
-            string firstValue = values.Length == 0 ? string.Empty : values[0];
-            string changedValue;
-
-            if (!TryCreateScalarTestValue(elementType, firstValue, out changedValue))
-            {
-                testValue = originalValue;
-                return false;
-            }
-
-            if (values.Length == 0)
-            {
-                testValue = changedValue;
-                return true;
-            }
-
-            values[0] = changedValue;
-            testValue = string.Join(",", values);
-            return true;
-        }
-
-        private static bool TryCreateScalarTestValue(Type scalarType, string originalValue, out string testValue)
-        {
-            Type valueType = Nullable.GetUnderlyingType(scalarType) ?? scalarType;
-
-            testValue = originalValue;
-            if (valueType == typeof(string))
-            {
-                testValue = (originalValue ?? string.Empty) + "__sp2test";
-                return true;
-            }
-
-            if (valueType == typeof(bool))
-            {
-                testValue = string.Equals(originalValue, "true", StringComparison.OrdinalIgnoreCase) ? "false" : "true";
-                return true;
-            }
-
-            if (valueType.IsEnum)
-            {
-                return TryCreateEnumTestValue(valueType, originalValue, out testValue);
-            }
-
-            return IsNumericType(valueType) && TryCreateNumericTestValue(valueType, originalValue, out testValue);
-        }
-
-        private static string[] SplitCsv(string value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                return new string[0];
-            }
-
-            string[] values = value.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-            for (int index = 0; index < values.Length; index++)
-            {
-                values[index] = values[index].Trim();
-            }
-
-            return values;
-        }
-
-        private static string[] CreateDefaultVectorComponents(int componentCount)
-        {
-            string[] components = new string[componentCount];
-            for (int index = 0; index < components.Length; index++)
-            {
-                components[index] = index == 0 ? "1" : "0";
-            }
-
-            return components;
-        }
-
-        private static bool IsNumericType(Type valueType)
-        {
-            return valueType == typeof(byte) || valueType == typeof(sbyte) ||
-                   valueType == typeof(short) || valueType == typeof(ushort) ||
-                   valueType == typeof(int) || valueType == typeof(uint) ||
-                   valueType == typeof(long) || valueType == typeof(ulong) ||
-                   valueType == typeof(float) || valueType == typeof(double) ||
-                   valueType == typeof(decimal);
-        }
-
-        private sealed class TestScriptSummary
-        {
-            public int PassedCount { get; set; }
-
-            public int AttemptedCount { get; set; }
-
-            public int SkippedCount { get; set; }
         }
 
         private void ResetUpdateNotice()
@@ -940,5 +480,6 @@ namespace SimplePlanes2PartEditor
         }
     }
 }
+
 
 

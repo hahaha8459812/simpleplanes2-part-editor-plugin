@@ -1,8 +1,8 @@
-﻿# Overload-like / 应用刷新实验笔记
+﻿# Dev 应用刷新实验笔记
 
 ## 当前阶段约定
 
-- 分支：`overload-like`。
+- 分支：`dev`。
 - 基线：以当前 `main` 代码为基础，优先把普通 `应用` 路径做稳。
 - 已删除“重载应用”路径。原因：重载零件会引入连接、碰撞器、运行时对象替换等额外风险；当前测试表明普通应用配合分流刷新更稳定。
 - 当前主路径：`PartData` 使用完整刷新，`ModifierData` 使用轻量刷新。
@@ -35,5 +35,6 @@
 - 2026-04-30：`PartData.Health` 直接应用后可以同步到 `PartScript.MaxHealth`；面板刷新后状态一致。
 - 2026-04-30：`PartData.PartScale` 默认可为空。当前完整刷新中，有值时同步到 `PartScript.transform.localScale`，清空时恢复 `Vector3.one`。
 - 2026-04-30：所有零件的 `PartData` 是同一套结构，重复按零件类型测试 `PartData` 字段意义有限；后续重点转向不同 `ModifierData` 类型。
-- 2026-04-30：导弹 `ProceduralMissileData` / `MissileData` / `CameraVantageData` 自动测试表明 MD 反射写入、轻量刷新、恢复链路整体可用；少数 `requestedValue != afterValue` 更像游戏内部规范化或派生字段行为。
+- 2026-04-30：曾使用临时自动测试工具验证导弹 `ProceduralMissileData` / `MissileData` / `CameraVantageData`：MD 反射写入、轻量刷新、恢复链路整体可用；少数 `requestedValue != afterValue` 更像游戏内部规范化或派生字段行为。该临时测试工具和修改记录器已清理。
 - 2026-04-30：火炮 `CannonData._ammoCount` 测试确认：反射写入成功，XML/游戏零件配置页可见变动。此前 ModifierData 应用后火炮会移动到疑似 `0,0,0`，原因倾向于 MD 应用也触发了完整 PartData Transform/Collider 同步。改为刷新分流后，MD 只走 `ModifierLight`，复测火炮不再移动。
+
