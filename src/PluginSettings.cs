@@ -8,6 +8,7 @@ namespace SimplePlanes2PartEditor
     {
         public string Language { get; private set; }
         public string ToggleWindowHotkey { get; private set; }
+        public bool ToggleWindowHotkeyEnabled { get; private set; }
         public bool UpdateCheckEnabled { get; private set; }
         public string UpdateIndexUrl { get; private set; }
         public float SelectionRefreshIntervalSeconds { get; private set; }
@@ -19,6 +20,7 @@ namespace SimplePlanes2PartEditor
         public float FloatingButtonX { get; private set; }
         public float FloatingButtonY { get; private set; }
         public float FloatingButtonSize { get; private set; }
+        public float DesignerCameraMaxDistance { get; private set; }
         public float ExpandedEditorX { get; private set; }
         public float ExpandedEditorY { get; private set; }
         public float ExpandedEditorWidth { get; private set; }
@@ -33,6 +35,7 @@ namespace SimplePlanes2PartEditor
         {
             Language = "zh-CN";
             ToggleWindowHotkey = "F8";
+            ToggleWindowHotkeyEnabled = true;
             UpdateCheckEnabled = true;
             UpdateIndexUrl = string.Empty;
             SelectionRefreshIntervalSeconds = 0.25f;
@@ -44,6 +47,7 @@ namespace SimplePlanes2PartEditor
             FloatingButtonX = 28f;
             FloatingButtonY = 140f;
             FloatingButtonSize = 52f;
+            DesignerCameraMaxDistance = 500f;
             ExpandedEditorX = 120f;
             ExpandedEditorY = 120f;
             ExpandedEditorWidth = 820f;
@@ -67,6 +71,7 @@ namespace SimplePlanes2PartEditor
 
             settings.Language = GetString(values, "language", settings.Language);
             settings.ToggleWindowHotkey = GetString(values, "toggleWindowHotkey", settings.ToggleWindowHotkey);
+            settings.ToggleWindowHotkeyEnabled = GetBool(values, "toggleWindowHotkeyEnabled", settings.ToggleWindowHotkeyEnabled);
             settings.UpdateCheckEnabled = GetBool(values, "updateCheckEnabled", settings.UpdateCheckEnabled);
             settings.UpdateIndexUrl = GetString(values, "updateIndexUrl", settings.UpdateIndexUrl);
             settings.SelectionRefreshIntervalSeconds = GetFloat(values, "selectionRefreshIntervalSeconds", settings.SelectionRefreshIntervalSeconds);
@@ -78,6 +83,7 @@ namespace SimplePlanes2PartEditor
             settings.FloatingButtonX = GetFloat(values, "floatingButtonX", settings.FloatingButtonX);
             settings.FloatingButtonY = GetFloat(values, "floatingButtonY", settings.FloatingButtonY);
             settings.FloatingButtonSize = GetFloat(values, "floatingButtonSize", settings.FloatingButtonSize);
+            settings.DesignerCameraMaxDistance = GetFloat(values, "designerCameraMaxDistance", settings.DesignerCameraMaxDistance);
             settings.ExpandedEditorX = GetFloat(values, "expandedEditorX", settings.ExpandedEditorX);
             settings.ExpandedEditorY = GetFloat(values, "expandedEditorY", settings.ExpandedEditorY);
             settings.ExpandedEditorWidth = GetFloat(values, "expandedEditorWidth", settings.ExpandedEditorWidth);
@@ -96,6 +102,7 @@ namespace SimplePlanes2PartEditor
             return "{\n" +
                    "  \"language\": \"" + SimpleJson.Escape(Language) + "\",\n" +
                    "  \"toggleWindowHotkey\": \"" + SimpleJson.Escape(ToggleWindowHotkey) + "\",\n" +
+                   "  \"toggleWindowHotkeyEnabled\": " + ToggleWindowHotkeyEnabled.ToString().ToLowerInvariant() + ",\n" +
                    "  \"updateCheckEnabled\": " + UpdateCheckEnabled.ToString().ToLowerInvariant() + ",\n" +
                    "  \"updateIndexUrl\": \"" + SimpleJson.Escape(UpdateIndexUrl) + "\",\n" +
                    "  \"selectionRefreshIntervalSeconds\": " + SelectionRefreshIntervalSeconds.ToString(CultureInfo.InvariantCulture) + ",\n" +
@@ -107,6 +114,7 @@ namespace SimplePlanes2PartEditor
                    "  \"floatingButtonX\": " + FloatingButtonX.ToString(CultureInfo.InvariantCulture) + ",\n" +
                    "  \"floatingButtonY\": " + FloatingButtonY.ToString(CultureInfo.InvariantCulture) + ",\n" +
                    "  \"floatingButtonSize\": " + FloatingButtonSize.ToString(CultureInfo.InvariantCulture) + ",\n" +
+                   "  \"designerCameraMaxDistance\": " + DesignerCameraMaxDistance.ToString(CultureInfo.InvariantCulture) + ",\n" +
                    "  \"expandedEditorX\": " + ExpandedEditorX.ToString(CultureInfo.InvariantCulture) + ",\n" +
                    "  \"expandedEditorY\": " + ExpandedEditorY.ToString(CultureInfo.InvariantCulture) + ",\n" +
                    "  \"expandedEditorWidth\": " + ExpandedEditorWidth.ToString(CultureInfo.InvariantCulture) + ",\n" +
@@ -133,6 +141,11 @@ namespace SimplePlanes2PartEditor
             {
                 ToggleWindowHotkey = hotkey.Trim();
             }
+        }
+
+        public void SetToggleWindowHotkeyEnabled(bool enabled)
+        {
+            ToggleWindowHotkeyEnabled = enabled;
         }
 
         public void SetUpdateCheckOptions(bool enabled, string indexUrl)
@@ -166,6 +179,12 @@ namespace SimplePlanes2PartEditor
         public void SetFloatingButtonSize(float size)
         {
             FloatingButtonSize = size;
+            ClampValues();
+        }
+
+        public void SetDesignerCameraMaxDistance(float maxDistance)
+        {
+            DesignerCameraMaxDistance = maxDistance;
             ClampValues();
         }
 
@@ -274,6 +293,15 @@ namespace SimplePlanes2PartEditor
             else if (FloatingButtonSize > 120f)
             {
                 FloatingButtonSize = 120f;
+            }
+
+            if (DesignerCameraMaxDistance < 75f)
+            {
+                DesignerCameraMaxDistance = 75f;
+            }
+            else if (DesignerCameraMaxDistance > 5000f)
+            {
+                DesignerCameraMaxDistance = 5000f;
             }
 
             if (ExpandedEditorX < 0f)

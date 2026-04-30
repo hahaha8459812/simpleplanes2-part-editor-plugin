@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace SimplePlanes2PartEditor
@@ -33,10 +34,12 @@ namespace SimplePlanes2PartEditor
         private string _windowHeightText;
         private string _backgroundOpacityText;
         private string _hotkeyText;
+        private bool _hotkeyEnabled;
         private bool _updateCheckEnabled;
         private string _updateIndexUrlText;
         private string _selectionRefreshIntervalText;
         private string _floatingButtonSizeText;
+        private string _designerCameraMaxDistanceText;
         private bool _lockFloatingButtonPosition;
         private bool _showTypeColumn;
         private bool _showAccessColumn;
@@ -44,6 +47,12 @@ namespace SimplePlanes2PartEditor
         private bool _showRuntimeCacheMembers;
         private string _customXmlAttributeName = string.Empty;
         private string _customXmlAttributeValue = string.Empty;
+        private readonly JFuselageShapeEditor _jfuselageShapeEditor = new JFuselageShapeEditor();
+        private readonly Dictionary<string, string> _jfuselageShapeEditorValues = new Dictionary<string, string>();
+        private readonly Dictionary<string, string> _jfuselageShapeErrors = new Dictionary<string, string>();
+        private Rect _hoveredHelpBadgeRect;
+        private string _hoveredHelpBadgeDescription;
+        private bool _jfuselageShapeExpanded = false;
 
         private GUIStyle _titleStyle;
         private GUIStyle _labelStyle;
@@ -58,7 +67,10 @@ namespace SimplePlanes2PartEditor
         private GUIStyle _secondaryButtonStyle;
         private GUIStyle _groupButtonStyle;
         private GUIStyle _selectedGroupButtonStyle;
+        private GUIStyle _helpBadgeStyle;
+        private GUIStyle _tooltipStyle;
         private GUIStyle _sectionStyle;
+        private GUIStyle _borderedSectionStyle;
         private GUIStyle _columnHeaderStyle;
         private GUIStyle _columnHeaderRowStyle;
         private GUIStyle _rowStyle;
@@ -74,6 +86,9 @@ namespace SimplePlanes2PartEditor
         private Texture2D _secondaryButtonHoverTexture;
         private Texture2D _secondaryButtonActiveTexture;
         private Texture2D _selectedGroupButtonBackgroundTexture;
+        private Texture2D _helpBadgeBackgroundTexture;
+        private Texture2D _tooltipBackgroundTexture;
+        private Texture2D _borderedSectionBackgroundTexture;
         private Texture2D _columnHeaderBackgroundTexture;
         private Texture2D _rowBackgroundTexture;
         private Texture2D _rowAltBackgroundTexture;
@@ -99,6 +114,8 @@ namespace SimplePlanes2PartEditor
 
         public Action<InspectableMember> MemberApplied { get; set; }
 
+        public Action<object, IEnumerable<string>, string> DirectObjectApplied { get; set; }
+
         public bool IsMouseOverWindow()
         {
             Vector2 mousePosition = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
@@ -109,6 +126,7 @@ namespace SimplePlanes2PartEditor
         {
             InitializeLayoutIfNeeded();
             ApplySkin();
+            _hoveredHelpBadgeDescription = null;
             ConsumeScrollWheelBeforePanel();
             InitializeExpandedEditorLayoutIfNeeded();
             HandleExpandedEditorLayout();
@@ -121,6 +139,7 @@ namespace SimplePlanes2PartEditor
             GUILayout.EndArea();
 
             DrawExpandedEditor();
+            DrawTooltipIfNeeded();
             InputCapture.SetTextInputFocused(GUIUtility.keyboardControl != 0);
         }
 
@@ -228,10 +247,12 @@ namespace SimplePlanes2PartEditor
             DrawSettingsRow("settings.windowHeight", ref _windowHeightText);
             DrawSettingsRow("settings.backgroundOpacity", ref _backgroundOpacityText);
             DrawSettingsRow("settings.hotkey", ref _hotkeyText);
+            _hotkeyEnabled = GUILayout.Toggle(_hotkeyEnabled, _localization.Get("settings.hotkeyEnabled"));
             _updateCheckEnabled = GUILayout.Toggle(_updateCheckEnabled, _localization.Get("settings.updateCheckEnabled"));
             DrawSettingsRow("settings.updateIndexUrl", ref _updateIndexUrlText, -1f);
             DrawSettingsRow("settings.selectionRefreshIntervalSeconds", ref _selectionRefreshIntervalText);
             DrawSettingsRow("settings.floatingButtonSize", ref _floatingButtonSizeText);
+            DrawSettingsRow("settings.designerCameraMaxDistance", ref _designerCameraMaxDistanceText);
             _lockFloatingButtonPosition = GUILayout.Toggle(_lockFloatingButtonPosition, _localization.Get("settings.lockFloatingButtonPosition"));
             _showTypeColumn = GUILayout.Toggle(_showTypeColumn, _localization.Get("settings.showTypeColumn"));
             _showAccessColumn = GUILayout.Toggle(_showAccessColumn, _localization.Get("settings.showAccessColumn"));
@@ -249,9 +270,11 @@ namespace SimplePlanes2PartEditor
             {
                 _settings.SetUiLayout(18, 1320f, 860f, 0.96f);
                 _settings.SetToggleWindowHotkey("F8");
+                _settings.SetToggleWindowHotkeyEnabled(true);
                 _settings.SetUpdateCheckOptions(true, string.Empty);
                 _settings.SetSelectionRefreshInterval(0.25f);
                 _settings.SetFloatingButtonSize(52f);
+                _settings.SetDesignerCameraMaxDistance(500f);
                 _settings.SetExpandedEditorLayout(120f, 120f, 820f, 420f);
                 _settings.SetLockFloatingButtonPosition(false);
                 _settings.SetDisplayOptions(true, true, true);
@@ -286,13 +309,15 @@ namespace SimplePlanes2PartEditor
             float backgroundOpacity;
             float selectionRefreshIntervalSeconds;
             float floatingButtonSize;
+            float designerCameraMaxDistance;
 
             if (!int.TryParse(_fontSizeText, NumberStyles.Integer, CultureInfo.InvariantCulture, out fontSize) ||
                 !float.TryParse(_windowWidthText, NumberStyles.Float, CultureInfo.InvariantCulture, out windowWidth) ||
                 !float.TryParse(_windowHeightText, NumberStyles.Float, CultureInfo.InvariantCulture, out windowHeight) ||
                 !float.TryParse(_backgroundOpacityText, NumberStyles.Float, CultureInfo.InvariantCulture, out backgroundOpacity) ||
                 !float.TryParse(_selectionRefreshIntervalText, NumberStyles.Float, CultureInfo.InvariantCulture, out selectionRefreshIntervalSeconds) ||
-                !float.TryParse(_floatingButtonSizeText, NumberStyles.Float, CultureInfo.InvariantCulture, out floatingButtonSize))
+                !float.TryParse(_floatingButtonSizeText, NumberStyles.Float, CultureInfo.InvariantCulture, out floatingButtonSize) ||
+                !float.TryParse(_designerCameraMaxDistanceText, NumberStyles.Float, CultureInfo.InvariantCulture, out designerCameraMaxDistance))
             {
                 RaiseStatus(_localization.Get("status.settingsInvalid"));
                 return;
@@ -300,9 +325,11 @@ namespace SimplePlanes2PartEditor
 
             _settings.SetUiLayout(fontSize, windowWidth, windowHeight, backgroundOpacity);
             _settings.SetToggleWindowHotkey(_hotkeyText);
+            _settings.SetToggleWindowHotkeyEnabled(_hotkeyEnabled);
             _settings.SetUpdateCheckOptions(_updateCheckEnabled, _updateIndexUrlText);
             _settings.SetSelectionRefreshInterval(selectionRefreshIntervalSeconds);
             _settings.SetFloatingButtonSize(floatingButtonSize);
+            _settings.SetDesignerCameraMaxDistance(designerCameraMaxDistance);
             _settings.SetLockFloatingButtonPosition(_lockFloatingButtonPosition);
             _settings.SetDisplayOptions(_showTypeColumn, _showAccessColumn, _showFullTypeName);
             _settings.SetRuntimeCacheMembersVisible(_showRuntimeCacheMembers);
@@ -319,10 +346,12 @@ namespace SimplePlanes2PartEditor
             _windowHeightText = _settings.WindowHeight.ToString("0", CultureInfo.InvariantCulture);
             _backgroundOpacityText = _settings.BackgroundOpacity.ToString("0.##", CultureInfo.InvariantCulture);
             _hotkeyText = _settings.ToggleWindowHotkey;
+            _hotkeyEnabled = _settings.ToggleWindowHotkeyEnabled;
             _updateCheckEnabled = _settings.UpdateCheckEnabled;
             _updateIndexUrlText = _settings.UpdateIndexUrl;
             _selectionRefreshIntervalText = _settings.SelectionRefreshIntervalSeconds.ToString("0.##", CultureInfo.InvariantCulture);
             _floatingButtonSizeText = _settings.FloatingButtonSize.ToString("0", CultureInfo.InvariantCulture);
+            _designerCameraMaxDistanceText = _settings.DesignerCameraMaxDistance.ToString("0", CultureInfo.InvariantCulture);
             _lockFloatingButtonPosition = _settings.LockFloatingButtonPosition;
             _showTypeColumn = _settings.ShowTypeColumn;
             _showAccessColumn = _settings.ShowAccessColumn;
@@ -553,6 +582,8 @@ namespace SimplePlanes2PartEditor
             {
                 GUILayout.Label(group.TargetTypeName, GetMutedLabelStyle());
             }
+
+            DrawJFuselageShapeEditor(group);
             DrawHeaderRow();
 
             _alternateRow = false;
@@ -568,6 +599,179 @@ namespace SimplePlanes2PartEditor
 
             GUILayout.EndVertical();
             GUILayout.Space(10f);
+        }
+
+        private void DrawJFuselageShapeEditor(InspectableGroup group)
+        {
+            int visibleCount = 0;
+
+            if (group == null || !_jfuselageShapeEditor.IsSupported(group.TargetObject))
+            {
+                return;
+            }
+
+            foreach (JFuselageShapeRow row in _jfuselageShapeEditor.GetRows())
+            {
+                if (row.Matches(_searchTerm))
+                {
+                    visibleCount++;
+                }
+            }
+
+            if (visibleCount == 0)
+            {
+                return;
+            }
+
+            GUILayout.Space(8f);
+            if (GUILayout.Button((_jfuselageShapeExpanded ? "▼ " : "▶ ") + _localization.Get("jfuselage.title"), GetSecondaryButtonStyle(), GUILayout.Height(30f)))
+            {
+                _jfuselageShapeExpanded = !_jfuselageShapeExpanded;
+            }
+
+            if (!_jfuselageShapeExpanded)
+            {
+                GUILayout.Space(6f);
+                return;
+            }
+
+            GUILayout.BeginVertical(GetBorderedSectionStyle());
+            GUILayout.Label(_localization.Get("jfuselage.hint"), GetMutedLabelStyle());
+            GUILayout.BeginHorizontal(GetColumnHeaderRowStyle(), GUILayout.MinHeight(30f));
+            GUILayout.Label(_localization.Get("column.name"), GetColumnHeaderStyle(), GUILayout.Width(GetNameColumnWidth()));
+            if (_settings.ShowTypeColumn)
+            {
+                GUILayout.Label(_localization.Get("column.type"), GetColumnHeaderStyle(), GUILayout.Width(GetTypeColumnWidth()));
+            }
+            GUILayout.Label(_localization.Get("column.value"), GetColumnHeaderStyle(), GUILayout.Width(GetValueColumnWidth()));
+            if (_settings.ShowAccessColumn)
+            {
+                GUILayout.Label(_localization.Get("column.access"), GetColumnHeaderStyle(), GUILayout.Width(GetAccessColumnWidth()));
+            }
+            GUILayout.Label(_localization.Get("column.actions"), GetColumnHeaderStyle(), GUILayout.Width(GetActionsColumnWidth()));
+            GUILayout.EndHorizontal();
+
+            _alternateRow = false;
+            foreach (JFuselageShapeRow row in _jfuselageShapeEditor.GetRows())
+            {
+                if (!row.Matches(_searchTerm))
+                {
+                    continue;
+                }
+
+                DrawJFuselageShapeRow(group, row);
+            }
+
+            GUILayout.EndVertical();
+            GUILayout.Space(10f);
+        }
+
+        private void DrawJFuselageShapeRow(InspectableGroup group, JFuselageShapeRow row)
+        {
+            string cacheKey = GetJFuselageShapeCacheKey(group.TargetObject, row.Key);
+            string currentValue;
+            string editorValue;
+            string error;
+            bool hasCurrentValue = _jfuselageShapeEditor.TryReadValue(group.TargetObject, row.Key, out currentValue);
+
+            if (!_jfuselageShapeEditorValues.TryGetValue(cacheKey, out editorValue))
+            {
+                editorValue = hasCurrentValue ? currentValue : string.Empty;
+                _jfuselageShapeEditorValues[cacheKey] = editorValue;
+            }
+
+            GUILayout.BeginHorizontal(_alternateRow ? GetRowAltStyle() : GetRowStyle(), GUILayout.MinHeight(36f));
+            DrawMemberNameCell(row.Label, row.Description);
+            if (_settings.ShowTypeColumn)
+            {
+                GUILayout.Label(row.TypeName, GetMutedLabelStyle(), GUILayout.Width(GetTypeColumnWidth()));
+            }
+
+            _jfuselageShapeEditorValues[cacheKey] = DrawTextField("jfuselage-" + cacheKey, editorValue, GetValueColumnWidth());
+
+            if (_settings.ShowAccessColumn)
+            {
+                GUILayout.Label(_localization.Get("jfuselage.access"), GetMutedLabelStyle(), GUILayout.Width(GetAccessColumnWidth()));
+            }
+
+            GUI.enabled = hasCurrentValue && !string.Equals(_jfuselageShapeEditorValues[cacheKey], currentValue, StringComparison.Ordinal);
+            if (GUILayout.Button(_localization.Get("button.apply"), GetButtonStyle(), GUILayout.Width(70f), GUILayout.Height(30f)))
+            {
+                ApplyJFuselageShapeValue(group, row, cacheKey);
+            }
+
+            if (GUILayout.Button(_localization.Get("button.reset"), GetSecondaryButtonStyle(), GUILayout.Width(70f), GUILayout.Height(30f)))
+            {
+                _jfuselageShapeEditorValues[cacheKey] = currentValue;
+                _jfuselageShapeErrors.Remove(cacheKey);
+            }
+            GUI.enabled = true;
+            GUILayout.EndHorizontal();
+            _alternateRow = !_alternateRow;
+
+            if (_jfuselageShapeErrors.TryGetValue(cacheKey, out error) && !string.IsNullOrEmpty(error))
+            {
+                GUILayout.Label("  " + _localization.Get("label.error") + ": " + error, GetMutedLabelStyle());
+            }
+        }
+
+        private void ApplyJFuselageShapeValue(InspectableGroup group, JFuselageShapeRow row, string cacheKey)
+        {
+            string error;
+            string currentValue;
+            string editorValue = _jfuselageShapeEditorValues.ContainsKey(cacheKey) ? _jfuselageShapeEditorValues[cacheKey] : string.Empty;
+
+            if (!_jfuselageShapeEditor.TryApplyValue(group.TargetObject, row.Key, editorValue, out error))
+            {
+                _jfuselageShapeErrors[cacheKey] = error;
+                RaiseStatus(_localization.Get("status.applyFailed") + ": " + row.Label);
+                return;
+            }
+
+            _jfuselageShapeErrors.Remove(cacheKey);
+            if (_jfuselageShapeEditor.TryReadValue(group.TargetObject, row.Key, out currentValue))
+            {
+                _jfuselageShapeEditorValues[cacheKey] = currentValue;
+            }
+
+            if (DirectObjectApplied != null)
+            {
+                DirectObjectApplied(group.TargetObject, _jfuselageShapeEditor.GetRuntimeRefreshMemberNames(row.Key), editorValue);
+            }
+
+            RaiseStatus(_localization.Get("status.applied") + ": " + row.Label);
+        }
+
+        private static string GetJFuselageShapeCacheKey(object target, string rowKey)
+        {
+            return RuntimeHelpers.GetHashCode(target).ToString(CultureInfo.InvariantCulture) + ":" + rowKey;
+        }
+
+        private void DrawTooltipIfNeeded()
+        {
+            if (string.IsNullOrEmpty(_hoveredHelpBadgeDescription) || Event.current == null || Event.current.type != EventType.Repaint)
+            {
+                return;
+            }
+
+            Vector2 mousePosition = Event.current.mousePosition;
+            string tooltip = _hoveredHelpBadgeDescription;
+            Vector2 size = GetTooltipStyle().CalcSize(new GUIContent(tooltip));
+            size.x = Mathf.Min(size.x, 520f);
+            size.y = GetTooltipStyle().CalcHeight(new GUIContent(tooltip), size.x);
+            Rect rect = new Rect(mousePosition.x + 18f, mousePosition.y + 18f, size.x + 20f, size.y + 14f);
+
+            if (rect.xMax > Screen.width)
+            {
+                rect.x = Mathf.Max(8f, Screen.width - rect.width - 8f);
+            }
+
+            if (rect.yMax > Screen.height)
+            {
+                rect.y = Mathf.Max(8f, mousePosition.y - rect.height - 18f);
+            }
+
+            GUI.Label(rect, tooltip, GetTooltipStyle());
         }
 
         private void DrawHeaderRow()
@@ -587,10 +791,36 @@ namespace SimplePlanes2PartEditor
             GUILayout.EndHorizontal();
         }
 
+        private void DrawMemberNameCell(string memberName, string description)
+        {
+            GUILayout.BeginHorizontal(GUILayout.Width(GetNameColumnWidth()));
+            GUILayout.Label(memberName, GetLabelStyle(), GUILayout.Width(GetNameColumnWidth() - 34f));
+            DrawOptionalHelpBadge(description);
+            GUILayout.EndHorizontal();
+        }
+
+        private void DrawOptionalHelpBadge(string description)
+        {
+            if (string.IsNullOrEmpty(description))
+            {
+                GUILayout.Space(28f);
+                return;
+            }
+
+            GUILayout.Label("?", GetHelpBadgeStyle(), GUILayout.Width(28f), GUILayout.Height(24f));
+            Rect helpBadgeRect = GUILayoutUtility.GetLastRect();
+            Event currentEvent = Event.current;
+            if (currentEvent != null && helpBadgeRect.Contains(currentEvent.mousePosition))
+            {
+                _hoveredHelpBadgeRect = helpBadgeRect;
+                _hoveredHelpBadgeDescription = description;
+            }
+        }
+
         private void DrawMemberRow(SelectedPartSnapshot snapshot, InspectableGroup group, InspectableMember member)
         {
             GUILayout.BeginHorizontal(_alternateRow ? GetRowAltStyle() : GetRowStyle(), GUILayout.MinHeight(36f));
-            GUILayout.Label(member.Name, GetLabelStyle(), GUILayout.Width(GetNameColumnWidth()));
+            DrawMemberNameCell(member.Name, member.Description);
             if (_settings.ShowTypeColumn)
             {
                 GUILayout.Label(member.TypeName, GetMutedLabelStyle(), GUILayout.Width(GetTypeColumnWidth()));
@@ -1096,7 +1326,10 @@ namespace SimplePlanes2PartEditor
             DrawBorder(new Rect(_windowRect.x + 10f, _windowRect.y + 46f, _windowRect.width - 20f, _windowRect.height - 56f), new Color(0.085f, 0.14f, 0.22f, 1f));
 
             GUI.Label(new Rect(_windowRect.x + 20f, _windowRect.y + 7f, _windowRect.width - 300f, 28f), title, GetHeaderLabelStyle());
-            GUI.Label(new Rect(_windowRect.x + _windowRect.width - 260f, _windowRect.y + 8f, 240f, 24f), _localization.Get("label.hotkey"), GetHeaderLabelRightStyle());
+            GUI.Label(
+                new Rect(_windowRect.x + _windowRect.width - 260f, _windowRect.y + 8f, 240f, 24f),
+                _settings.ToggleWindowHotkeyEnabled ? _localization.Get("label.hotkey") : _localization.Get("label.hotkeyDisabled"),
+                GetHeaderLabelRightStyle());
         }
 
         private static void DrawBorder(Rect rect, Color color)
@@ -1361,6 +1594,37 @@ namespace SimplePlanes2PartEditor
             return _selectedGroupButtonStyle;
         }
 
+        private GUIStyle GetHelpBadgeStyle()
+        {
+            if (_helpBadgeStyle == null)
+            {
+                _helpBadgeStyle = new GUIStyle(GUI.skin.label);
+                _helpBadgeStyle.normal.background = GetHelpBadgeBackgroundTexture();
+                _helpBadgeStyle.normal.textColor = new Color(0.8f, 0.9f, 1f, 1f);
+                _helpBadgeStyle.alignment = TextAnchor.MiddleCenter;
+                _helpBadgeStyle.fontStyle = FontStyle.Bold;
+                _helpBadgeStyle.padding = new RectOffset(0, 0, 2, 2);
+            }
+
+            _helpBadgeStyle.fontSize = Mathf.Max(11, _settings.FontSize - 2);
+            return _helpBadgeStyle;
+        }
+
+        private GUIStyle GetTooltipStyle()
+        {
+            if (_tooltipStyle == null)
+            {
+                _tooltipStyle = new GUIStyle(GUI.skin.label);
+                _tooltipStyle.normal.background = GetTooltipBackgroundTexture();
+                _tooltipStyle.normal.textColor = new Color(0.94f, 0.97f, 1f, 1f);
+                _tooltipStyle.padding = new RectOffset(10, 10, 7, 7);
+                _tooltipStyle.wordWrap = true;
+            }
+
+            _tooltipStyle.fontSize = _settings.FontSize;
+            return _tooltipStyle;
+        }
+
         private GUIStyle GetRowStyle()
         {
             if (_rowStyle == null)
@@ -1401,6 +1665,23 @@ namespace SimplePlanes2PartEditor
             return _sectionStyle;
         }
 
+        private GUIStyle GetBorderedSectionStyle()
+        {
+            if (_borderedSectionStyle == null)
+            {
+                _borderedSectionStyle = new GUIStyle(GUI.skin.box);
+                _borderedSectionStyle.normal.background = GetBorderedSectionBackgroundTexture();
+                _borderedSectionStyle.hover.background = GetBorderedSectionBackgroundTexture();
+                _borderedSectionStyle.active.background = GetBorderedSectionBackgroundTexture();
+                _borderedSectionStyle.focused.background = GetBorderedSectionBackgroundTexture();
+                _borderedSectionStyle.border = new RectOffset(1, 1, 1, 1);
+                _borderedSectionStyle.padding = new RectOffset(14, 14, 12, 12);
+            }
+
+            _borderedSectionStyle.fontSize = _settings.FontSize;
+            return _borderedSectionStyle;
+        }
+
         private Texture2D GetSectionBackgroundTexture()
         {
             if (_sectionBackgroundTexture == null)
@@ -1409,6 +1690,16 @@ namespace SimplePlanes2PartEditor
             }
 
             return _sectionBackgroundTexture;
+        }
+
+        private Texture2D GetBorderedSectionBackgroundTexture()
+        {
+            if (_borderedSectionBackgroundTexture == null)
+            {
+                _borderedSectionBackgroundTexture = CreateBorderTexture(new Color(0.06f, 0.074f, 0.1f, 1f), new Color(1f, 1f, 1f, 0.9f));
+            }
+
+            return _borderedSectionBackgroundTexture;
         }
 
         private Texture2D GetTextFieldBackgroundTexture()
@@ -1491,6 +1782,26 @@ namespace SimplePlanes2PartEditor
             return _selectedGroupButtonBackgroundTexture;
         }
 
+        private Texture2D GetHelpBadgeBackgroundTexture()
+        {
+            if (_helpBadgeBackgroundTexture == null)
+            {
+                _helpBadgeBackgroundTexture = CreateSolidTexture(new Color(0.08f, 0.16f, 0.28f, 1f));
+            }
+
+            return _helpBadgeBackgroundTexture;
+        }
+
+        private Texture2D GetTooltipBackgroundTexture()
+        {
+            if (_tooltipBackgroundTexture == null)
+            {
+                _tooltipBackgroundTexture = CreateSolidTexture(new Color(0.025f, 0.035f, 0.055f, 0.98f));
+            }
+
+            return _tooltipBackgroundTexture;
+        }
+
         private Texture2D GetColumnHeaderBackgroundTexture()
         {
             if (_columnHeaderBackgroundTexture == null)
@@ -1525,6 +1836,24 @@ namespace SimplePlanes2PartEditor
         {
             Texture2D texture = new Texture2D(1, 1);
             texture.SetPixel(0, 0, color);
+            texture.Apply();
+            return texture;
+        }
+
+        private static Texture2D CreateBorderTexture(Color fillColor, Color borderColor)
+        {
+            Texture2D texture = new Texture2D(3, 3);
+            Color[] pixels = new Color[9];
+            for (int y = 0; y < 3; y++)
+            {
+                for (int x = 0; x < 3; x++)
+                {
+                    bool isBorderPixel = x == 0 || x == 2 || y == 0 || y == 2;
+                    pixels[(y * 3) + x] = isBorderPixel ? borderColor : fillColor;
+                }
+            }
+
+            texture.SetPixels(pixels);
             texture.Apply();
             return texture;
         }

@@ -27,6 +27,12 @@ namespace SimplePlanes2PartEditor
             {
                 refreshed |= TryRefreshPartDataRuntime(target);
             }
+            else if (string.Equals(target.GetType().Name, "JFuselageData", StringComparison.Ordinal))
+            {
+                refreshed |= TryRefreshModifierRuntime(target, member);
+                refreshed |= TryInvokeNoArgMethod(target, "OnShapeDataChanged");
+                refreshed |= TryInvokeNoArgMethod(target, "OnMeshRegenerated");
+            }
             else
             {
                 refreshed |= TryRefreshModifierRuntime(target, member);
@@ -37,16 +43,54 @@ namespace SimplePlanes2PartEditor
             return refreshed;
         }
 
-        private static bool TryRefreshModifierRuntime(object target, InspectableMember member)
+        public bool TryRefreshTargetAfterApply(object target, System.Collections.Generic.IEnumerable<string> propertyNames, string value)
         {
             bool refreshed = false;
 
-            if (target == null || member == null)
+            if (target == null)
             {
                 return false;
             }
 
-            refreshed |= TryNotifyModifierPropertyChanged(target, member.GetRuntimeRefreshMemberNames(), member.Value);
+            if (HasPartDataShape(target))
+            {
+                refreshed |= TryRefreshPartDataRuntime(target);
+            }
+            else if (string.Equals(target.GetType().Name, "JFuselageData", StringComparison.Ordinal))
+            {
+                refreshed |= TryRefreshModifierRuntime(target, propertyNames, value);
+                refreshed |= TryInvokeNoArgMethod(target, "OnShapeDataChanged");
+                refreshed |= TryInvokeNoArgMethod(target, "OnMeshRegenerated");
+            }
+            else
+            {
+                refreshed |= TryRefreshModifierRuntime(target, propertyNames, value);
+            }
+
+            refreshed |= TryMarkDesignerStructureChanged();
+            return refreshed;
+        }
+
+        private static bool TryRefreshModifierRuntime(object target, InspectableMember member)
+        {
+            if (member == null)
+            {
+                return false;
+            }
+
+            return TryRefreshModifierRuntime(target, member.GetRuntimeRefreshMemberNames(), member.Value);
+        }
+
+        private static bool TryRefreshModifierRuntime(object target, System.Collections.Generic.IEnumerable<string> propertyNames, string value)
+        {
+            bool refreshed = false;
+
+            if (target == null)
+            {
+                return false;
+            }
+
+            refreshed |= TryNotifyModifierPropertyChanged(target, propertyNames, value);
             refreshed |= TryRecalculateModifierMass(target);
             return refreshed;
         }

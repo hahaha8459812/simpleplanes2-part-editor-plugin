@@ -9,11 +9,13 @@ namespace SimplePlanes2PartEditor
     internal sealed class ReflectionMemberScanner
     {
         private readonly int _maxMembersPerGroup;
+        private readonly InspectableMemberDescriptionProvider _descriptionProvider;
 
-        public ReflectionMemberScanner(int maxMembersPerGroup, bool showRuntimeCacheMembers)
+        public ReflectionMemberScanner(int maxMembersPerGroup, bool showRuntimeCacheMembers, InspectableMemberDescriptionProvider descriptionProvider)
         {
             _maxMembersPerGroup = Math.Max(20, maxMembersPerGroup);
             ShowRuntimeCacheMembers = showRuntimeCacheMembers;
+            _descriptionProvider = descriptionProvider;
         }
 
         public bool ShowRuntimeCacheMembers { get; set; }
@@ -57,7 +59,7 @@ namespace SimplePlanes2PartEditor
             return string.Compare(left.Name, right.Name, StringComparison.OrdinalIgnoreCase);
         }
 
-        private static void AddProperties(object target, List<InspectableMember> members, HashSet<string> seenNames)
+        private void AddProperties(object target, List<InspectableMember> members, HashSet<string> seenNames)
         {
             BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
             PropertyInfo[] properties = target.GetType().GetProperties(flags);
@@ -67,6 +69,7 @@ namespace SimplePlanes2PartEditor
                 object value;
                 FieldInfo backingField;
                 string attributes;
+                InspectableMember member;
                 if (!CanReadProperty(property) || !IsDisplayableType(property.PropertyType) || !seenNames.Add("P:" + property.Name))
                 {
                     continue;
@@ -75,7 +78,7 @@ namespace SimplePlanes2PartEditor
                 backingField = FindBackingField(target.GetType(), property.Name);
                 value = TryGetValue(() => property.GetValue(target, null));
                 attributes = GetAttributeNames(property);
-                members.Add(new InspectableMember(
+                member = new InspectableMember(
                     target,
                     property,
                     backingField,
@@ -83,11 +86,13 @@ namespace SimplePlanes2PartEditor
                     GetFriendlyTypeName(property.PropertyType),
                     GetPropertyAccess(property, backingField),
                     ValueFormatter.FormatValue(value, property.PropertyType),
-                    attributes));
+                    attributes);
+                member.SetDescription(_descriptionProvider.GetDescription(target.GetType(), property));
+                members.Add(member);
             }
         }
 
-        private static void AddFields(object target, List<InspectableMember> members, HashSet<string> seenNames, bool showRuntimeCacheMembers)
+        private void AddFields(object target, List<InspectableMember> members, HashSet<string> seenNames, bool showRuntimeCacheMembers)
         {
             BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
             FieldInfo[] fields = target.GetType().GetFields(flags);
@@ -96,6 +101,7 @@ namespace SimplePlanes2PartEditor
             {
                 object value;
                 string attributes;
+                InspectableMember member;
                 if (ShouldSkipField(field, showRuntimeCacheMembers) || field.IsStatic || !IsDisplayableType(field.FieldType) || !seenNames.Add("F:" + field.Name))
                 {
                     continue;
@@ -103,14 +109,16 @@ namespace SimplePlanes2PartEditor
 
                 value = TryGetValue(() => field.GetValue(target));
                 attributes = GetAttributeNames(field);
-                members.Add(new InspectableMember(
+                member = new InspectableMember(
                     target,
                     field,
                     field.Name,
                     GetFriendlyTypeName(field.FieldType),
                     field.IsPublic ? "public field" : "private field",
                     ValueFormatter.FormatValue(value, field.FieldType),
-                    attributes));
+                    attributes);
+                member.SetDescription(_descriptionProvider.GetDescription(target.GetType(), field));
+                members.Add(member);
             }
         }
 
@@ -207,7 +215,7 @@ namespace SimplePlanes2PartEditor
                 return effectiveType.Name;
             }
 
-            return effectiveType.Name.Substring(0, effectiveType.Name.IndexOf('`'));
+            return effectiveType.Name.Substring(0, effectiveType.Name.IndexOf('\x60'));
         }
 
         private static string GetPropertyAccess(PropertyInfo property, FieldInfo backingField)

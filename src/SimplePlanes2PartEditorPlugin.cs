@@ -19,7 +19,9 @@ namespace SimplePlanes2PartEditor
         private LocalizationProvider _localization;
         private DesignerSelectionService _selectionService;
         private ReflectionMemberScanner _memberScanner;
+        private InspectableMemberDescriptionProvider _descriptionProvider;
         private PartRuntimeRefreshService _partRuntimeRefreshService;
+        private DesignerCameraLimitService _designerCameraLimitService;
         private UpdateCheckService _updateCheckService;
         private ImguiPartEditorWindow _window;
         private SelectionReadResult _currentSelection;
@@ -53,11 +55,21 @@ namespace SimplePlanes2PartEditor
 
         private void Update()
         {
-            ProbeSelectionIfDue();
-            InputCapture.SetWindowState(_isWindowVisible, _window != null && _window.IsMouseOverWindow());
-            InputCapture.SetFloatingButtonState(_isDesignerAvailable && IsPointerOverFloatingButton());
+            bool designerUiActive;
 
-            if (_isDesignerAvailable && Input.GetKeyDown(_toggleWindowKeyCode))
+            ProbeSelectionIfDue();
+            ApplyDesignerCameraLimit();
+            designerUiActive = IsDesignerUiActive();
+            if (!designerUiActive)
+            {
+                _isWindowVisible = false;
+                _isFloatingButtonDragging = false;
+            }
+
+            InputCapture.SetWindowState(_isWindowVisible, designerUiActive && _window != null && _window.IsMouseOverWindow());
+            InputCapture.SetFloatingButtonState(designerUiActive && IsPointerOverFloatingButton());
+
+            if (_settings.ToggleWindowHotkeyEnabled && designerUiActive && Input.GetKeyDown(_toggleWindowKeyCode))
             {
                 _isWindowVisible = !_isWindowVisible;
                 if (_isWindowVisible)
@@ -71,6 +83,8 @@ namespace SimplePlanes2PartEditor
 
         private void OnGUI()
         {
+            bool designerUiActive;
+
             if (_window == null)
             {
                 InputCapture.SetWindowState(false, false);
@@ -78,9 +92,11 @@ namespace SimplePlanes2PartEditor
                 return;
             }
 
-            if (!_isDesignerAvailable)
+            designerUiActive = IsDesignerUiActive();
+            if (!designerUiActive)
             {
                 _isWindowVisible = false;
+                _isFloatingButtonDragging = false;
                 InputCapture.SetWindowState(false, false);
                 InputCapture.SetFloatingButtonState(false);
                 return;
@@ -118,9 +134,11 @@ namespace SimplePlanes2PartEditor
             _toggleWindowKeyCode = ParseKeyCode(_settings.ToggleWindowHotkey, KeyCode.F8);
             _localization = new LocalizationProvider(Path.Combine(_pluginRootPath, "localization"));
             _localization.Load(_settings.Language);
-            _memberScanner = new ReflectionMemberScanner(_settings.MaxMembersPerGroup, _settings.ShowRuntimeCacheMembers);
+            _descriptionProvider = new InspectableMemberDescriptionProvider(_localization);
+            _memberScanner = new ReflectionMemberScanner(_settings.MaxMembersPerGroup, _settings.ShowRuntimeCacheMembers, _descriptionProvider);
             _selectionService = new DesignerSelectionService(_memberScanner);
             _partRuntimeRefreshService = new PartRuntimeRefreshService();
+            _designerCameraLimitService = new DesignerCameraLimitService();
             _updateCheckService = new UpdateCheckService();
             _window = new ImguiPartEditorWindow(_localization, _settings)
             {
@@ -129,6 +147,7 @@ namespace SimplePlanes2PartEditor
                 CopyXmlRequested = CopyCurrentPartXml,
                 StatusChanged = SetStatusText,
                 MemberApplied = RefreshPartRuntimeStateAfterApply,
+                DirectObjectApplied = RefreshRuntimeStateAfterDirectApply,
                 SettingsSaveRequested = SaveSettings
             };
             _statusText = _localization.Get("status.ready");
@@ -271,6 +290,16 @@ namespace SimplePlanes2PartEditor
             RefreshSelection();
         }
 
+        private void RefreshRuntimeStateAfterDirectApply(object target, System.Collections.Generic.IEnumerable<string> propertyNames, string value)
+        {
+            if (_partRuntimeRefreshService != null)
+            {
+                _partRuntimeRefreshService.TryRefreshTargetAfterApply(target, propertyNames, value);
+            }
+
+            RefreshSelection();
+        }
+
         private void SaveSettings()
         {
             File.WriteAllText(_settingsPath, _settings.ToJson(), System.Text.Encoding.UTF8);
@@ -282,7 +311,16 @@ namespace SimplePlanes2PartEditor
 
             _nextSelectionRefreshTime = 0f;
             ResetUpdateNotice();
+            ApplyDesignerCameraLimit();
             RefreshSelection();
+        }
+
+        private void ApplyDesignerCameraLimit()
+        {
+            if (_designerCameraLimitService != null && _settings != null)
+            {
+                _designerCameraLimitService.ApplyMaxDistance(_settings.DesignerCameraMaxDistance);
+            }
         }
 
         private void ResetUpdateNotice()
@@ -456,6 +494,13 @@ namespace SimplePlanes2PartEditor
             return string.Equals(statusKey, "label.noDesigner", StringComparison.Ordinal);
         }
 
+        private bool IsDesignerUiActive()
+        {
+            // Temporary: keep the floating button available until designer/flight
+            // transition detection is reliable enough to hide it safely.
+            return true;
+        }
+
         private void EnsureRuntimeFiles()
         {
             string localizationDirectory = Path.Combine(_pluginRootPath, "localization");
@@ -480,6 +525,7 @@ namespace SimplePlanes2PartEditor
         }
     }
 }
+
 
 
 

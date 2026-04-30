@@ -40,6 +40,11 @@ namespace SimplePlanes2PartEditor
                     return SelectionProbeResult.FromNoDesigner();
                 }
 
+                if (!IsDesignerInstanceActive(designerInstance))
+                {
+                    return SelectionProbeResult.FromNoDesigner();
+                }
+
                 selectedPart = GetSelectedPart(designerInstance);
                 if (selectedPart == null)
                 {
@@ -71,6 +76,11 @@ namespace SimplePlanes2PartEditor
             {
                 designerInstance = GetDesignerInstance();
                 if (designerInstance == null)
+                {
+                    return SelectionReadResult.FromStatus("label.noDesigner");
+                }
+
+                if (!IsDesignerInstanceActive(designerInstance))
                 {
                     return SelectionReadResult.FromStatus("label.noDesigner");
                 }
@@ -366,6 +376,23 @@ namespace SimplePlanes2PartEditor
             }
 
             return field == null ? null : field.GetValue(target);
+        }
+
+        private static bool IsDesignerInstanceActive(object designerInstance)
+        {
+            Behaviour behaviour = designerInstance as Behaviour;
+            if (behaviour != null)
+            {
+                return behaviour.isActiveAndEnabled && behaviour.gameObject != null && behaviour.gameObject.activeInHierarchy;
+            }
+
+            GameObject gameObject = designerInstance as GameObject;
+            if (gameObject != null)
+            {
+                return gameObject.activeInHierarchy;
+            }
+
+            return true;
         }
 
         private static int GetObjectId(object target)

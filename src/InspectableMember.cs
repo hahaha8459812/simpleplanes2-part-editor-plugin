@@ -24,6 +24,7 @@ namespace SimplePlanes2PartEditor
             Value = value;
             EditorValue = value;
             Attributes = attributes;
+            Description = string.Empty;
             _valueType = property.PropertyType;
             CanWrite = ValueConverter.IsEditableType(_valueType) &&
                        (property.GetSetMethod(true) != null || IsWritableBackingField(backingField));
@@ -40,6 +41,7 @@ namespace SimplePlanes2PartEditor
             Value = value;
             EditorValue = value;
             Attributes = attributes;
+            Description = string.Empty;
             _valueType = field.FieldType;
             CanWrite = !field.IsLiteral && ValueConverter.IsEditableType(_valueType);
             _lastCommittedValue = value;
@@ -56,6 +58,8 @@ namespace SimplePlanes2PartEditor
         public string EditorValue { get; set; }
 
         public string Attributes { get; private set; }
+
+        public string Description { get; private set; }
 
         public bool CanWrite { get; private set; }
 
@@ -94,7 +98,13 @@ namespace SimplePlanes2PartEditor
             return Contains(Name, searchTerm) ||
                    Contains(TypeName, searchTerm) ||
                    Contains(Value, searchTerm) ||
+                   Contains(Description, searchTerm) ||
                    Contains(Attributes, searchTerm);
+        }
+
+        public void SetDescription(string description)
+        {
+            Description = description ?? string.Empty;
         }
 
         public bool TryApply()
