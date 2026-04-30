@@ -2,15 +2,65 @@
 
 [English](README.en.md)
 
-这是一个独立于汉化插件的 `SimplePlanes 2` 游戏内零件数据编辑器项目。它借鉴 Overload 的“在游戏内查看和修改零件底层数据”思路，但实现路线会更贴合 SP2：优先面向会保存进 XML 的 `PartData` / `PartModifierData` 数据层，而不是默认暴露整棵 Unity 运行时对象。
+这是一个独立于汉化插件的 `SimplePlanes 2` 游戏内零件数据编辑器项目。它借鉴 Overload 的"在游戏内查看和修改零件底层数据"思路，但实现路线更贴合 SP2：优先面向会保存进 XML 的 `PartData` / `PartModifierData` 数据层，而不是默认暴露整棵 Unity 运行时对象。
 
-## 项目定位
+## 当前功能
 
-- 独立运行，不依赖 SimplePlanes 2 本地化插件。
-- 基于 `BepInEx 5 Mono` 和 Unity IMGUI。
-- 写回通过 `Apply / Reset` 控制，避免输入时立刻修改游戏数据。
-- 优先展示数据层：`Designer.SelectedPart -> PartScript -> PartData -> Modifiers`。
-- 插件 UI 内置中文/英文切换，并提供 JSON 本地化接口。
+### 基础编辑
+
+- `F8` 或悬浮按钮打开/关闭编辑器面板（可在设置中关闭快捷键，悬浮按钮位置可锁定）。
+- 在设计器内读取当前选中的零件。
+- 展示当前零件名称、ID、PartType 和 PartDataType。
+- 按 PartData 和各 PartModifierData 分组展示所有可反射读取的简单成员。
+- 支持搜索属性名、类型、值和特性名。
+- 支持复制当前零件 `GenerateXml()` 生成的 XML 到剪贴板。
+
+### 属性说明
+
+- 每个属性名旁有 `?` 悬浮提示，显示该属性的作用说明。
+- PartData 的 41 个属性全部有中英双语说明。
+- 枚举类型属性（如 `DragType`、`PartCollisionResponse`、`LoadContext`）注明了所有可取值。
+- 说明跟随面板语言切换自动变化。
+- 其他类型（ModifierData 等）的说明通过代码特性自动提取，未来可逐步补充。
+
+### 写回与应用
+
+- 输入后点击 `Apply` 写回内存对象，不做逐字符实时写入。
+- PartData 修改走完整刷新（含 Transform、Collider、Mass 同步）。
+- ModifierData 修改走轻量刷新（含 `OnGenericDesignerPropertyChanged` 和 `RecalculateMass`）。
+- 写回失败时在面板显示错误信息。
+- JFuselage 零件有专用形状参数面板，直接写入 SectionA / SectionB 截面数据。
+
+### 自定义 XML 属性
+
+- 支持在面板内添加/删除自定义 XML 属性到当前数据组。
+- 自定义属性会出现在 `GenerateXml()` 输出中。
+- 删除自定义属性即时生效。
+
+### 设计器增强
+
+- 可调整设计器相机最大距离（默认 500，最高 5000），方便观察大型载具。
+- 自动同步相机远裁剪面，避免远距离缩小后零件不渲染。
+
+### 面板设置（可保存）
+
+- 字体大小（12-32）
+- 面板宽度与高度
+- 背景不透明度（0.65-1）
+- 悬浮按钮大小（32-120）与位置锁定
+- 是否显示类型列、访问列、完整类型名、运行期缓存字段
+- 选中零件自动刷新间隔（0.1-5 秒）
+
+### 更新提醒
+
+- 打开面板时检查远端 `index.json`，发现新版本后面板标题栏显示提醒。
+- 检查失败静默跳过，不影响编辑器使用。
+
+### 本地化
+
+- 面板内置中文/英文切换。
+- 可通过 `localization/*.json` 添加其他语言。
+- 属性说明和 UI 文本全部走本地化键。
 
 ## 安装
 
@@ -26,7 +76,7 @@ https://github.com/hahaha8459812/simpleplanes2-part-editor-plugin/releases
 2. 解压压缩包。
 3. 把压缩包里的内容放入 `SimplePlanes 2` 游戏根目录，也就是 `SimplePlanes 2.exe` 所在目录。
 4. 启动游戏，进入设计器。
-5. 选中一个零件，按 `F8` 打开面板。
+5. 选中一个零件，按 `F8` 或点击悬浮按钮打开面板。
 
 如果你只拿到了解压后的 Release 包，也可以在包根目录运行：
 
@@ -38,6 +88,15 @@ https://github.com/hahaha8459812/simpleplanes2-part-editor-plugin/releases
 
 ```powershell
 .\install.ps1 -GameDir "D:\SteamLibrary\steamapps\common\SimplePlanes 2"
+```
+
+手动安装指定版本依赖：如果你已有 BepInEx 5 Mono x64 环境，只需要把以下文件放入对应目录：
+
+```text
+BepInEx\plugins\SimplePlanes2PartEditor\SimplePlanes2PartEditor.dll
+BepInEx\plugins\SimplePlanes2PartEditor\settings.json
+BepInEx\plugins\SimplePlanes2PartEditor\localization\zh-CN.json
+BepInEx\plugins\SimplePlanes2PartEditor\localization\en-US.json
 ```
 
 安装后游戏目录应该包含：
@@ -53,6 +112,8 @@ SimplePlanes 2\
 │        ├─ SimplePlanes2PartEditor.dll
 │        ├─ settings.json
 │        └─ localization\
+│           ├─ zh-CN.json
+│           └─ en-US.json
 └─ SimplePlanes 2.exe
 ```
 
@@ -72,7 +133,7 @@ BepInEx\plugins\SimplePlanes2PartEditor\settings.json
 
 ```json
 {
-  "version": "0.3.0",
+  "version": "0.3.5",
   "releaseNotes": "Release notes here."
 }
 ```
@@ -132,10 +193,10 @@ E:\Game\steam\steamapps\common\SimplePlanes 2
 
 ```powershell
 git add .
-git commit -m "Release v0.3.1"
-git tag -a v0.3.1 -m "Release v0.3.1"
+git commit -m "Release v0.3.6"
+git tag -a v0.3.6 -m "Release v0.3.6"
 git push
-git push origin v0.3.1
+git push origin v0.3.6
 ```
 
 CI 会校验 tag、`PluginVersion`、`index.json.version` 三者一致。不一致时会停止发版，避免发错包。
@@ -187,14 +248,17 @@ localization\en-US.json -> localization\ja-JP.json
 }
 ```
 
-语言文件是简单键值表：
+语言文件是简单键值表。属性说明的键以 `desc.` 开头，例如 `desc.partData.health` 对应 PartData 的 `Health` 属性说明。自定义类型说明需要在 `InspectableMemberDescriptionProvider` 中注册映射。
 
-```json
-{
-  "window.title": "SP2 零件数据编辑器",
-  "button.close": "关闭"
-}
-```
+## 属性说明系统
+
+编辑器为每个属性提供悬浮提示（`?`），说明来源有三层优先级：
+
+1. **代码特性**：如果属性标注了 `[Description]`、`[Tooltip]` 或 `[tooltip]` 等字符串特性，直接使用其内容。
+2. **自定义映射**：`InspectableMemberDescriptionProvider` 中注册的键值对，键为 `类型名.属性名` 或 `*.属性名`（通配所有类型），值以 `@` 开头的是本地化键。
+3. **无说明**：以上两层都没有时，不显示 `?` 图标。
+
+当前 PartData 的全部 41 个属性已注册说明映射，中英双语完整覆盖。ModifierData 和 JFuselage 专用属性的说明将逐步补充。
 
 ## 技术路线
 
@@ -211,7 +275,7 @@ Assets.Scripts.Design.Designer.Instance
 Assets.Scripts.Design.Designer.SelectedPart
 ```
 
-本项目第一阶段通过反射读取：
+本项目通过反射读取：
 
 ```text
 Designer.Instance.SelectedPart
@@ -220,31 +284,28 @@ Designer.Instance.SelectedPart
   -> PartData.Modifiers
 ```
 
-第一阶段不强引用 `Game.dll`，这样即使游戏更新导致类型变化，插件也更容易以“提示未检测到设计器”的方式失败，而不是直接加载失败。
+不强引用 `Game.dll`，这样即使游戏更新导致类型变化，插件也更容易以"提示未检测到设计器"的方式失败，而不是直接加载失败。
 
-## 后续阶段
+## 写回与应用机制
 
-### 阶段 2：安全编辑
+写回链路：
 
-- 支持 `int`、`float`、`bool`、`string`、`enum`、`Vector2/3/4` 和简单列表编辑。
-- 输入后点击 `Apply` 再写回，不做逐字符实时写入。
-- 写回前尝试调用游戏的 Undo 逻辑。
-- 字段旁提供 `Reset`。
-- 写回失败时在 UI 显示错误。
+```text
+用户在面板输入新值
+  -> ValueConverter.TryConvert 校验与类型转换
+  -> InspectableMember.TryApply 通过反射写入
+  -> PartRuntimeRefreshService 根据目标对象类型分流刷新
+  -> PartData 目标：完整刷新（Transform、Collider、Mass 等）
+  -> ModifierData 目标：轻量刷新（OnGenericDesignerPropertyChanged + RecalculateMass）
+  -> 面板刷新显示新值
+```
 
-### 阶段 3：SP2 化体验
+当前暂不处理：
 
-- 按 `PartData` 与 modifier 分组。
-- 优先排序带 `DesignerPropertyAttribute` 的属性。
-- 显示当前属性是否会进入 XML。
-- 支持收藏、最近修改和属性预设。
-
-### 阶段 4：高级模式
-
-- 原始 XML 编辑。
-- 危险 runtime 字段单独隔离。
-- 对称零件同步修改。
-- 导出/导入属性预设。
+- 对称/镜像零件自动同步。
+- 自动保存作品文件。
+- DesignerPropertyLabel / DesignerPropertyButton 标记为只读（已实现为不可编辑字段）。
+- 完整原始 XML 编辑器。
 
 ## 项目原则
 
