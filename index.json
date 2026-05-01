@@ -1,4 +1,4 @@
-{
-  "version": "0.3.5",
-  "releaseNotes": "Refined the editor panel visuals to reduce button and table clutter. PartData apply now refreshes designer runtime state, so common editable properties such as Health, Position, Rotation, mass-related values, and PartScale for non-uniform part scaling can take effect in real time."
+﻿{
+  "version": "0.4.0",
+  "releaseNotes": "Property descriptions: 372 attributes covered with Chinese and English tooltips. Hover the ? badge to see what each property does. Enum values documented (DragType, PartCollisionResponse, LoadContext, etc.). JFuselage shape editor with parameter tooltips. PartData real-time apply for common edits (Health, Position, Rotation, PartScale, mass values). Designer camera zoom limit adjustable (75-5000). Custom XML attribute add/remove. Hotkey toggle on/off. Floating button (draggable, lockable, collapsible). Language switching (zh-CN/en-US) with extensible localization interface. Update checker."
 }
