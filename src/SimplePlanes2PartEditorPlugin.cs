@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using BepInEx;
 using HarmonyLib;
@@ -22,6 +22,7 @@ namespace SimplePlanes2PartEditor
         private InspectableMemberDescriptionProvider _descriptionProvider;
         private PartRuntimeRefreshService _partRuntimeRefreshService;
         private DesignerCameraLimitService _designerCameraLimitService;
+        private DesignerSceneDetector _designerSceneDetector;
         private UpdateCheckService _updateCheckService;
         private ImguiPartEditorWindow _window;
         private SelectionReadResult _currentSelection;
@@ -59,6 +60,11 @@ namespace SimplePlanes2PartEditor
 
             ProbeSelectionIfDue();
             ApplyDesignerCameraLimit();
+            if (_designerSceneDetector != null)
+            {
+                _designerSceneDetector.Update();
+            }
+
             designerUiActive = IsDesignerUiActive();
             if (!designerUiActive)
             {
@@ -139,6 +145,7 @@ namespace SimplePlanes2PartEditor
             _selectionService = new DesignerSelectionService(_memberScanner);
             _partRuntimeRefreshService = new PartRuntimeRefreshService();
             _designerCameraLimitService = new DesignerCameraLimitService();
+            _designerSceneDetector = new DesignerSceneDetector();
             _updateCheckService = new UpdateCheckService();
             _window = new ImguiPartEditorWindow(_localization, _settings)
             {
@@ -496,9 +503,7 @@ namespace SimplePlanes2PartEditor
 
         private bool IsDesignerUiActive()
         {
-            // Temporary: keep the floating button available until designer/flight
-            // transition detection is reliable enough to hide it safely.
-            return true;
+            return _designerSceneDetector != null && _designerSceneDetector.IsInDesignerScene;
         }
 
         private void EnsureRuntimeFiles()
