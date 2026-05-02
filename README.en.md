@@ -2,6 +2,9 @@
 
 [中文](README.md)
 
+> **Install and Management Notice**
+> This plugin is intended to be installed, updated, enabled, disabled, and removed through [SimplePlanes 2 Mod Manager](https://github.com/hahaha8459812/simpleplanes2-mod-manager). Starting from `v0.4.1`, release packages no longer bundle BepInEx. Install BepInEx through the mod manager first, or manually install BepInEx 5 Mono x64.
+
 This is an in-game part data editor for SimplePlanes 2, independent from the localization plugin. It takes inspiration from Overload-style editing, but the implementation is tailored for SP2: the default target is the XML-backed PartData / PartModifierData data layer instead of the full Unity runtime object graph.
 
 ## Current Features

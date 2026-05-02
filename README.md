@@ -2,6 +2,9 @@
 
 [English](README.en.md)
 
+> **安装与管理提示**
+> 本插件推荐使用 [SimplePlanes 2 Mod Manager](https://github.com/hahaha8459812/simpleplanes2-mod-manager) 进行统一安装、更新、启用、禁用和卸载。`v0.4.1` 起发布包不再内置 BepInEx，请先通过插件管理器安装 BepInEx，或自行安装 BepInEx 5 Mono x64。
+
 这是一个独立于汉化插件的 `SimplePlanes 2` 游戏内零件数据编辑器项目。它借鉴 Overload 的"在游戏内查看和修改零件底层数据"思路，但实现路线更贴合 SP2：优先面向会保存进 XML 的 `PartData` / `PartModifierData` 数据层，而不是默认暴露整棵 Unity 运行时对象。
 
 ## 当前功能

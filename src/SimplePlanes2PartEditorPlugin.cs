@@ -11,7 +11,7 @@ namespace SimplePlanes2PartEditor
     {
         public const string PluginGuid = "com.codex.simpleplanes2.parteditor";
         public const string PluginName = "SimplePlanes 2 Part Editor";
-        public const string PluginVersion = "0.4.1";
+        public const string PluginVersion = "0.4.2";
 
         private string _pluginRootPath;
         private string _settingsPath;
@@ -530,7 +530,3 @@ namespace SimplePlanes2PartEditor
         }
     }
 }
-
-
-
-

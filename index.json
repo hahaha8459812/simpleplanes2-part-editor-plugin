@@ -1,15 +1,15 @@
-﻿{
+{
   "id": "SimplePlanes2PartEditor",
   "name": "SimplePlanes 2 Part Editor",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "In-game SimplePlanes 2 part data editor.",
   "fileName": "SimplePlanes2PartEditor-Plugin.zip",
-  "downloadUrl": "https://github.com/hahaha8459812/simpleplanes2-part-editor-plugin/releases/download/v0.4.1/SimplePlanes2PartEditor-Plugin.zip",
+  "downloadUrl": "https://github.com/hahaha8459812/simpleplanes2-part-editor-plugin/releases/download/v0.4.2/SimplePlanes2PartEditor-Plugin.zip",
   "repository": "https://github.com/hahaha8459812/simpleplanes2-part-editor-plugin",
   "entryDll": "BepInEx/plugins/SimplePlanes2PartEditor/SimplePlanes2PartEditor.dll",
   "pluginDirectory": "BepInEx/plugins/SimplePlanes2PartEditor",
   "configFiles": [
     "BepInEx/plugins/SimplePlanes2PartEditor/settings.json"
   ],
-  "releaseNotes": "Packaging now follows the SimplePlanes 2 Mod Manager plugin convention: the release zip contains mod.json plus the plugin files only, and no longer bundles BepInEx. Install BepInEx through the mod manager or manually before installing this plugin. Also includes the floating button designer visibility recovery fix."
+  "releaseNotes": "README update: the repository now prominently recommends using SimplePlanes 2 Mod Manager for unified plugin installation, updates, enable/disable, and uninstall. Release packaging remains Mod Manager compatible and does not bundle BepInEx."
 }
