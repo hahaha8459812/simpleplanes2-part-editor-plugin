@@ -1,4 +1,15 @@
 ﻿{
-  "version": "0.4.0",
-  "releaseNotes": "Property descriptions: 372 attributes covered with Chinese and English tooltips. Hover the ? badge to see what each property does. Enum values documented (DragType, PartCollisionResponse, LoadContext, etc.). JFuselage shape editor with parameter tooltips. PartData real-time apply for common edits (Health, Position, Rotation, PartScale, mass values). Designer camera zoom limit adjustable (75-5000). Custom XML attribute add/remove. Hotkey toggle on/off. Floating button (draggable, lockable, collapsible). Language switching (zh-CN/en-US) with extensible localization interface. Update checker."
+  "id": "SimplePlanes2PartEditor",
+  "name": "SimplePlanes 2 Part Editor",
+  "version": "0.4.1",
+  "description": "In-game SimplePlanes 2 part data editor.",
+  "fileName": "SimplePlanes2PartEditor-Plugin.zip",
+  "downloadUrl": "https://github.com/hahaha8459812/simpleplanes2-part-editor-plugin/releases/download/v0.4.1/SimplePlanes2PartEditor-Plugin.zip",
+  "repository": "https://github.com/hahaha8459812/simpleplanes2-part-editor-plugin",
+  "entryDll": "BepInEx/plugins/SimplePlanes2PartEditor/SimplePlanes2PartEditor.dll",
+  "pluginDirectory": "BepInEx/plugins/SimplePlanes2PartEditor",
+  "configFiles": [
+    "BepInEx/plugins/SimplePlanes2PartEditor/settings.json"
+  ],
+  "releaseNotes": "Packaging now follows the SimplePlanes 2 Mod Manager plugin convention: the release zip contains mod.json plus the plugin files only, and no longer bundles BepInEx. Install BepInEx through the mod manager or manually before installing this plugin. Also includes the floating button designer visibility recovery fix."
 }

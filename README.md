@@ -1,4 +1,4 @@
-﻿# SimplePlanes 2 Part Editor Plugin
+# SimplePlanes 2 Part Editor Plugin
 
 [English](README.en.md)
 
@@ -64,49 +64,33 @@
 
 ## 安装
 
-普通测试者请在 GitHub Releases 下载最新版：
+推荐使用 `SimplePlanes 2 Mod Manager` 安装：
+
+https://github.com/hahaha8459812/simpleplanes2-mod-manager
+
+在管理器里选择游戏目录后，可以输入本仓库地址或 `index.json` 地址安装：
+
+```text
+https://github.com/hahaha8459812/simpleplanes2-part-editor-plugin
+https://raw.githubusercontent.com/hahaha8459812/simpleplanes2-part-editor-plugin/main/index.json
+```
+
+也可以在 GitHub Releases 下载最新版：
 
 https://github.com/hahaha8459812/simpleplanes2-part-editor-plugin/releases
 
-发布包已经内置 `BepInEx 5 Mono x64`，不需要另外下载 BepInEx。
+从 `v0.4.1` 开始，发布包不再内置 `BepInEx`。请先通过 Mod Manager 安装 BepInEx，或手动安装 `BepInEx 5 Mono x64` 后再安装本插件。
 
-下载 `SimplePlanes2PartEditor-Release.zip` 后：
-
-1. 关闭 `SimplePlanes 2`。
-2. 解压压缩包。
-3. 把压缩包里的内容放入 `SimplePlanes 2` 游戏根目录，也就是 `SimplePlanes 2.exe` 所在目录。
-4. 启动游戏，进入设计器。
-5. 选中一个零件，按 `F8` 或点击悬浮按钮打开面板。
-
-如果你只拿到了解压后的 Release 包，也可以在包根目录运行：
-
-```powershell
-.\install.ps1
-```
-
-如果游戏不在默认路径：
-
-```powershell
-.\install.ps1 -GameDir "D:\SteamLibrary\steamapps\common\SimplePlanes 2"
-```
-
-手动安装指定版本依赖：如果你已有 BepInEx 5 Mono x64 环境，只需要把以下文件放入对应目录：
-
-```text
-BepInEx\plugins\SimplePlanes2PartEditor\SimplePlanes2PartEditor.dll
-BepInEx\plugins\SimplePlanes2PartEditor\settings.json
-BepInEx\plugins\SimplePlanes2PartEditor\localization\zh-CN.json
-BepInEx\plugins\SimplePlanes2PartEditor\localization\en-US.json
-```
+下载 `SimplePlanes2PartEditor-Plugin.zip` 后，手动安装方式是把压缩包内的 `BepInEx` 文件夹合并到游戏根目录，也就是 `SimplePlanes 2.exe` 所在目录。
 
 安装后游戏目录应该包含：
 
 ```text
 SimplePlanes 2\
-├─ winhttp.dll
-├─ doorstop_config.ini
+├─ winhttp.dll                    ← 来自 BepInEx，不在本插件发布包内
+├─ doorstop_config.ini            ← 来自 BepInEx，不在本插件发布包内
 ├─ BepInEx\
-│  ├─ core\
+│  ├─ core\                       ← 来自 BepInEx，不在本插件发布包内
 │  └─ plugins\
 │     └─ SimplePlanes2PartEditor\
 │        ├─ SimplePlanes2PartEditor.dll
@@ -125,15 +109,20 @@ SimplePlanes 2\
 BepInEx\plugins\SimplePlanes2PartEditor\settings.json
 ```
 
-直接覆盖整个文件夹可能会把按钮位置、面板大小、语言、快捷键等个人设置重置。推荐使用 `install.ps1` 或 `build.ps1 -InstallToGame` 更新，它们会尽量保留已有 `settings.json`。
+直接覆盖整个文件夹可能会把按钮位置、面板大小、语言、快捷键等个人设置重置。推荐使用 SimplePlanes 2 Mod Manager 更新；它会跳过包根目录的元数据文件，并按插件目录安装。
 
 ## 版本索引
 
-仓库根目录的 `index.json` 是给插件检查更新用的轻量索引，只保留版本号和发布更新内容：
+仓库根目录的 `index.json` 同时服务于插件面板更新提醒和 SimplePlanes 2 Mod Manager 远程安装。发布新版本时必须同步更新 `version`、`fileName`、`downloadUrl`、`entryDll` 等字段：
 
 ```json
 {
-  "version": "0.3.5",
+  "id": "SimplePlanes2PartEditor",
+  "name": "SimplePlanes 2 Part Editor",
+  "version": "0.4.1",
+  "fileName": "SimplePlanes2PartEditor-Plugin.zip",
+  "downloadUrl": "https://github.com/hahaha8459812/simpleplanes2-part-editor-plugin/releases/download/v0.4.1/SimplePlanes2PartEditor-Plugin.zip",
+  "entryDll": "BepInEx/plugins/SimplePlanes2PartEditor/SimplePlanes2PartEditor.dll",
   "releaseNotes": "Release notes here."
 }
 ```
@@ -160,7 +149,7 @@ cd E:\Code\simpleplanes2-part-editor-plugin
 
 ```text
 artifacts\SimplePlanes2PartEditor.dll
-release\SimplePlanes2PartEditor-Release.zip
+release\SimplePlanes2PartEditor-Plugin.zip
 ```
 
 直接构建并安装到本机游戏：
@@ -181,7 +170,7 @@ E:\Game\steam\steamapps\common\SimplePlanes 2
 
 - 下载公开的 BepInEx 和 Unity 引用依赖。
 - 编译 `SimplePlanes2PartEditor.dll`。
-- 打包 `SimplePlanes2PartEditor-Release.zip`。
+- 打包符合 Mod Manager 规范的 `SimplePlanes2PartEditor-Plugin.zip`，包内不包含 BepInEx。
 - 创建或更新对应 GitHub Release，并上传 Mod 本体。
 
 发新版前请同时更新：

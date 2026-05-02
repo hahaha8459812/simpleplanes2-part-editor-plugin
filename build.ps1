@@ -14,6 +14,7 @@ $projectRoot = $PSScriptRoot
 $artifactsDir = Join-Path $projectRoot "artifacts"
 $releaseRoot = Join-Path $projectRoot "release"
 $pluginDllPath = Join-Path $artifactsDir "SimplePlanes2PartEditor.dll"
+$releaseZipPath = Join-Path $releaseRoot "SimplePlanes2PartEditor-Plugin.zip"
 $managedDir = Join-Path $GameDir "SimplePlanes 2_Data\Managed"
 $bepInExCoreDir = Join-Path $GameDir "BepInEx\core"
 
@@ -48,30 +49,6 @@ function Copy-DirectoryContents {
 
     New-Item -ItemType Directory -Force -Path $Destination | Out-Null
     Copy-Item -Path (Join-Path $Source "*") -Destination $Destination -Recurse -Force
-}
-
-function Copy-BepInExRuntime {
-    param(
-        [string]$SourceRoot,
-        [string]$DestinationRoot
-    )
-
-    $sourceCore = Join-Path $SourceRoot "BepInEx\core"
-    $destinationCore = Join-Path $DestinationRoot "BepInEx\core"
-
-    Assert-RequiredFile (Join-Path $SourceRoot "winhttp.dll")
-    Assert-RequiredFile (Join-Path $SourceRoot "doorstop_config.ini")
-    Assert-RequiredFile (Join-Path $sourceCore "BepInEx.dll")
-
-    Copy-Item -Path (Join-Path $SourceRoot "winhttp.dll") -Destination (Join-Path $DestinationRoot "winhttp.dll") -Force
-    Copy-Item -Path (Join-Path $SourceRoot "doorstop_config.ini") -Destination (Join-Path $DestinationRoot "doorstop_config.ini") -Force
-
-    if (Test-Path (Join-Path $SourceRoot ".doorstop_version")) {
-        Copy-Item -Path (Join-Path $SourceRoot ".doorstop_version") -Destination (Join-Path $DestinationRoot ".doorstop_version") -Force
-    }
-
-    New-Item -ItemType Directory -Force -Path $destinationCore | Out-Null
-    Copy-DirectoryContents -Source $sourceCore -Destination $destinationCore
 }
 
 function Update-SettingsWithMissingDefaults {
@@ -111,6 +88,38 @@ function Update-SettingsWithMissingDefaults {
     }
 }
 
+function Get-PluginVersion {
+    $pluginSourcePath = Join-Path $projectRoot "src\SimplePlanes2PartEditorPlugin.cs"
+    $pluginSource = Get-Content -Raw $pluginSourcePath
+    $match = [regex]::Match($pluginSource, 'PluginVersion\s*=\s*"([^"]+)"')
+
+    if (-not $match.Success) {
+        throw "Unable to read PluginVersion from $pluginSourcePath"
+    }
+
+    return $match.Groups[1].Value
+}
+
+function Write-ModManifest {
+    param([string]$ManifestPath)
+
+    $pluginVersion = Get-PluginVersion
+    $manifest = [ordered]@{
+        id = "SimplePlanes2PartEditor"
+        name = "SimplePlanes 2 Part Editor"
+        version = $pluginVersion
+        description = "In-game SimplePlanes 2 part data editor."
+        fileName = "SimplePlanes2PartEditor-Plugin.zip"
+        entryDll = "BepInEx/plugins/SimplePlanes2PartEditor/SimplePlanes2PartEditor.dll"
+        pluginDirectory = "BepInEx/plugins/SimplePlanes2PartEditor"
+        configFiles = @(
+            "BepInEx/plugins/SimplePlanes2PartEditor/settings.json"
+        )
+    }
+
+    $manifest | ConvertTo-Json -Depth 8 | Set-Content -Path $ManifestPath -Encoding UTF8
+}
+
 function Compress-PackageContents {
     param(
         [string]$PackageRoot,
@@ -134,16 +143,14 @@ function New-ReleasePackage {
     }
 
     New-Item -ItemType Directory -Force -Path $packageRoot, $pluginRoot, $localizationRoot | Out-Null
-    Copy-BepInExRuntime -SourceRoot $GameDir -DestinationRoot $packageRoot
+    Write-ModManifest -ManifestPath (Join-Path $packageRoot "mod.json")
     Copy-Item -Path $pluginDllPath -Destination (Join-Path $pluginRoot "SimplePlanes2PartEditor.dll") -Force
     Copy-Item -Path (Join-Path $projectRoot "content\settings.json") -Destination (Join-Path $pluginRoot "settings.json") -Force
     Copy-DirectoryContents -Source (Join-Path $projectRoot "content\localization") -Destination $localizationRoot
-    Copy-Item -Path (Join-Path $projectRoot "index.json") -Destination (Join-Path $packageRoot "index.json") -Force
     Copy-Item -Path (Join-Path $projectRoot "README.md") -Destination (Join-Path $packageRoot "README.md") -Force
     Copy-Item -Path (Join-Path $projectRoot "README.en.md") -Destination (Join-Path $packageRoot "README.en.md") -Force
-    Copy-Item -Path (Join-Path $projectRoot "install.ps1") -Destination (Join-Path $packageRoot "install.ps1") -Force
 
-    Compress-PackageContents -PackageRoot $packageRoot -ZipPath (Join-Path $releaseRoot "SimplePlanes2PartEditor-Release.zip")
+    Compress-PackageContents -PackageRoot $packageRoot -ZipPath $releaseZipPath
 }
 
 Assert-RequiredFile (Join-Path $bepInExCoreDir "BepInEx.dll")

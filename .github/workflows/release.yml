@@ -26,12 +26,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: SimplePlanes2PartEditor-Release
-          path: release/SimplePlanes2PartEditor-Release.zip
+          path: release/SimplePlanes2PartEditor-Plugin.zip
 
       - name: Publish GitHub release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: release/SimplePlanes2PartEditor-Release.zip
+          files: release/SimplePlanes2PartEditor-Plugin.zip
           body_path: release/RELEASE_NOTES.md
           prerelease: true

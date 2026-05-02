@@ -64,34 +64,42 @@ This is an in-game part data editor for SimplePlanes 2, independent from the loc
 
 ## Install
 
-Download the latest version from GitHub Releases:
+Recommended installation path: use `SimplePlanes 2 Mod Manager`:
+
+https://github.com/hahaha8459812/simpleplanes2-mod-manager
+
+After selecting the game folder in the manager, install from this repository URL or its `index.json` URL:
+
+```text
+https://github.com/hahaha8459812/simpleplanes2-part-editor-plugin
+https://raw.githubusercontent.com/hahaha8459812/simpleplanes2-part-editor-plugin/main/index.json
+```
+
+You can also download the latest package from GitHub Releases:
 
 https://github.com/hahaha8459812/simpleplanes2-part-editor-plugin/releases
 
-The release package already includes BepInEx 5 Mono x64. You do not need to download BepInEx separately.
+Starting from `v0.4.1`, the release package no longer bundles `BepInEx`. Install BepInEx through the Mod Manager, or manually install `BepInEx 5 Mono x64` before installing this plugin.
 
-After downloading SimplePlanes2PartEditor-Release.zip:
+After downloading `SimplePlanes2PartEditor-Plugin.zip`, manual installation means merging the package's `BepInEx` folder into the game root, the folder containing `SimplePlanes 2.exe`.
 
-1. Close SimplePlanes 2.
-2. Extract the zip.
-3. Place all extracted contents into the game root, the folder containing SimplePlanes 2.exe.
-4. Start the game and enter the designer.
-5. Select a part and press F8 or click the floating button.
+Expected game folder layout after installation:
 
-You can also run the installer from the extracted release package:
-
-    .\install.ps1
-
-Custom game directory:
-
-    .\install.ps1 -GameDir "D:\SteamLibrary\steamapps\common\SimplePlanes 2"
-
-Manual install: if you already have BepInEx 5 Mono x64 set up, copy these files into the matching directories:
-
-    BepInEx\plugins\SimplePlanes2PartEditor\SimplePlanes2PartEditor.dll
-    BepInEx\plugins\SimplePlanes2PartEditor\settings.json
-    BepInEx\plugins\SimplePlanes2PartEditor\localization\zh-CN.json
-    BepInEx\plugins\SimplePlanes2PartEditor\localization\en-US.json
+```text
+SimplePlanes 2\
+├─ winhttp.dll                    <- from BepInEx, not included in this plugin package
+├─ doorstop_config.ini            <- from BepInEx, not included in this plugin package
+├─ BepInEx\
+│  ├─ core\                       <- from BepInEx, not included in this plugin package
+│  └─ plugins\
+│     └─ SimplePlanes2PartEditor\
+│        ├─ SimplePlanes2PartEditor.dll
+│        ├─ settings.json
+│        └─ localization\
+│           ├─ zh-CN.json
+│           └─ en-US.json
+└─ SimplePlanes 2.exe
+```
 
 ## Update Notice
 
@@ -99,13 +107,13 @@ If you update by manually copying the whole mod package into the game root, back
 
     BepInEx\plugins\SimplePlanes2PartEditor\settings.json
 
-Overwriting the whole folder may reset personal settings such as the floating button position, panel size, language, and hotkey. Using install.ps1 or build.ps1 -InstallToGame is recommended because they preserve an existing settings.json when possible.
+Overwriting the whole folder may reset personal settings such as the floating button position, panel size, language, and hotkey. Using SimplePlanes 2 Mod Manager is recommended; it skips package metadata files and installs into the plugin directory.
 
 ## Version Index
 
-The repository root index.json is a lightweight update index used by the plugin:
+The repository root index.json is used by both the in-game update notice and SimplePlanes 2 Mod Manager remote installation. When publishing a new version, update version, fileName, downloadUrl, entryDll, and related fields:
 
-    {"version": "0.3.5", "releaseNotes": "Release notes here."}
+    {"id":"SimplePlanes2PartEditor","name":"SimplePlanes 2 Part Editor","version":"0.4.1","fileName":"SimplePlanes2PartEditor-Plugin.zip","downloadUrl":"https://github.com/hahaha8459812/simpleplanes2-part-editor-plugin/releases/download/v0.4.1/SimplePlanes2PartEditor-Plugin.zip","entryDll":"BepInEx/plugins/SimplePlanes2PartEditor/SimplePlanes2PartEditor.dll","releaseNotes":"Release notes here."}
 
 When publishing a new version, update this file and set its raw URL in the plugin settings:
 
@@ -121,7 +129,7 @@ The plugin requests this URL once the first time the panel is opened after each 
 Build outputs:
 
     artifacts\SimplePlanes2PartEditor.dll
-    release\SimplePlanes2PartEditor-Release.zip
+    release\SimplePlanes2PartEditor-Plugin.zip
 
 Build and install locally:
 
@@ -133,7 +141,7 @@ The repository includes a GitHub Actions hosted build. When a v* tag is pushed, 
 
 - Download public BepInEx and Unity reference dependencies.
 - Compile SimplePlanes2PartEditor.dll.
-- Package SimplePlanes2PartEditor-Release.zip.
+- Package Mod Manager compatible SimplePlanes2PartEditor-Plugin.zip without BepInEx.
 - Create or update the matching GitHub Release and upload the mod package.
 
 Before publishing a new version, update:
